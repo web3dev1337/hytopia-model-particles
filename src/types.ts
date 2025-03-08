@@ -23,23 +23,69 @@ export interface BasePattern {
   };
 }
 
+export interface PhysicsMaterial {
+  restitution?: number;      // Bounciness (0-1)
+  friction?: number;         // Surface friction (0-1)
+  density?: number;         // Material density for mass calculation
+}
+
+export interface CollisionFilter {
+  group?: number;           // Collision group (-32 to 32)
+  mask?: number;           // Collision mask (bitmask)
+  category?: number;       // Collision category (bitmask)
+}
+
+export interface RigidBodyOptions {
+  type: 'dynamic' | 'static' | 'kinematic';
+  mass?: number;
+  useGravity?: boolean;
+  gravityScale?: number;
+  linearDamping?: number;
+  angularDamping?: number;
+  fixedRotation?: boolean;
+  material?: PhysicsMaterial;
+  colliders?: Array<{
+    shape: 'sphere' | 'box' | 'cylinder';
+    size: Vector3;         // Dimensions for box/cylinder, or radius for sphere
+    offset?: Vector3;      // Offset from entity center
+    isTrigger?: boolean;
+    material?: PhysicsMaterial;
+  }>;
+}
+
+export interface PhysicsConfig {
+  enabled: boolean;
+  rigidBody?: RigidBodyOptions;
+  forces?: {
+    wind?: {
+      direction: Vector3;
+      strength: number;
+      turbulence?: number;
+    };
+    vortex?: {
+      center: Vector3;
+      strength: number;
+      radius: number;
+    };
+  };
+}
+
 export interface ParticleEffectConfig {
   particleCount: number;           // Number of particles per effect trigger
   model?: string;                  // Model URI (e.g., a .gltf file)
-  usePhysics?: boolean;           // Whether physics is enabled
-  gravity?: boolean;              // Whether gravity applies (if physics is on)
   lifetime: number;               // Lifetime in seconds
   speed: SpeedConfig;             // Speed range
-  direction?: { x: number; y: number; z: number } | null; // Base direction; if null, emits in all directions
+  direction?: Vector3 | null;       // Base direction; if null, emits in all directions
   spread: number;                 // Spread angle in degrees
   size: number;                   // Scale of the particle
   pattern?: string;               // Optional key to reference a preset pattern
   patternModifiers?: {           // Optional modifiers for the pattern
     [key: string]: any;
   };
+  physics?: PhysicsConfig;          // Replace usePhysics and gravity with detailed config
   color?: { r: number; g: number; b: number; a?: number }; // Optional color tint
   fadeOut?: boolean;             // Whether particles should fade out over lifetime
-  rotationSpeed?: SpeedConfig;   // Optional rotation speed range
+  rotationSpeed?: SpeedConfig;     // Optional rotation speed range
   scaleOverTime?: {             // Optional scale modification over lifetime
     start: number;
     end: number;
@@ -71,16 +117,29 @@ export interface World {
 export interface Entity {
   isSpawned: boolean;
   position: Vector3;
-  rawRigidBody?: any;
-  modelScale?: number;
+  velocity: Vector3;
+  rawRigidBody?: {
+    addForce(force: Vector3): void;
+    addTorque(torque: Vector3): void;
+    applyImpulse(impulse: Vector3): void;
+    applyImpulseAtPoint(impulse: Vector3, point: Vector3): void;
+    setLinearVelocity(velocity: Vector3): void;
+    getLinearVelocity(): Vector3;
+    setAngularVelocity(velocity: Vector3): void;
+    getAngularVelocity(): Vector3;
+    setLinearDamping(damping: number): void;
+    setAngularDamping(damping: number): void;
+    setFixedRotation(fixed: boolean): void;
+    getMass(): number;
+  };
+  modelScale: number;
   
   spawn(
     world: World,
     position: Vector3,
     velocity: Vector3,
     lifetime: number,
-    usePhysics: boolean,
-    useGravity: boolean
+    rigidBodyOptions?: RigidBodyOptions
   ): void;
   despawn(): void;
   update(deltaTime: number): void;
