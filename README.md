@@ -97,9 +97,9 @@ Ideal for continuous effects like water, fire, or magic.
 ```typescript
 emitter.emitEffect('stream', position, {
   patternModifiers: {
-    intensity: 0.5,  // Gentle flow
-    spread: 15,      // Cone spread angle
-    direction: { x: 0, y: 1, z: 0 }  // Upward direction
+    flow: 0.5,
+    spread: 15,
+    direction: { x: 0, y: 1, z: 0 }
   }
 });
 ```
@@ -175,7 +175,10 @@ emitter.emitEffect('rain', { x: 0, y: 10, z: 0 }, {
    emitter.emitEffect('debris', position, {
      physics: {
        enabled: true,      // Enable for important particles
-       lightweight: true   // Use simplified physics
+       rigidBody: {
+         useGravity: true,
+         type: "dynamic"
+       }
      }
    });
    ```
@@ -254,7 +257,6 @@ effects:
       b: 0.0
       a: 1.0              # Alpha (optional)
     physics:              # Physics configuration (optional)
-      enabled: true
       rigidBody:
         type: "dynamic"    # dynamic, static, or kinematic
         mass: 1.0
