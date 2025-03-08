@@ -3,6 +3,7 @@ import { loadParticleConfig, validateConfig } from './ParticleConfigLoader';
 import { ParticlePool } from './ParticlePool';
 import { ParticlePatternRegistry } from './ParticlePatternsRegistry';
 import { randomRange, randomDirectionWithinCone } from './utils';
+import { ParticleEffectQueue } from './ParticleEffectQueue';
 
 const FPS_HISTORY_SIZE = 60; // Keep track of last 60 frames (1 second at 60fps)
 const TARGET_FPS = 60;
@@ -13,6 +14,7 @@ export class ParticleEmitter {
   private world: World;
   private effectConfigs: { [name: string]: ParticleEffectConfig } = {};
   private pools: { [name: string]: ParticlePool } = {};
+  private effectQueue: ParticleEffectQueue;
   private adaptivePerformance: boolean = true;
   private maxParticles: number = 500;
   private avgFps: number = 60;
@@ -32,6 +34,13 @@ export class ParticleEmitter {
 
   constructor(world: World, config?: string | ParticleConfigFile) {
     this.world = world;
+    this.effectQueue = new ParticleEffectQueue({
+      maxQueueSize: 1000,
+      batchSize: 10,
+      maxEffectsPerFrame: Math.floor(this.maxParticles * 0.1), // 10% of max particles per frame
+      defaultMaxAge: 1000 // 1 second
+    });
+
     if (config) {
       if (typeof config === 'string') {
         this.loadConfigFromFile(config);
@@ -121,6 +130,31 @@ export class ParticleEmitter {
     };
   }
 
+  queueEffect(
+    effectName: string,
+    position: Vector3,
+    overrides?: Partial<ParticleEffectConfig>,
+    options?: {
+      priority?: number;
+      maxAge?: number;
+      batchKey?: string;
+    }
+  ): boolean {
+    if (!this.effectConfigs[effectName]) {
+      console.warn(`Effect "${effectName}" not defined.`);
+      return false;
+    }
+
+    return this.effectQueue.enqueue(effectName, position, overrides, options);
+  }
+
+  private emitQueuedEffects(): void {
+    const effects = this.effectQueue.dequeueEffects();
+    for (const effect of effects) {
+      this.emitEffect(effect.effectName, effect.position, effect.overrides);
+    }
+  }
+
   emitEffect(effectName: string, position: Vector3, overrides?: Partial<ParticleEffectConfig>): void {
     const cfg = this.effectConfigs[effectName];
     if (!cfg) {
@@ -130,7 +164,7 @@ export class ParticleEmitter {
 
     const effectiveCfg: ParticleEffectConfig = { ...cfg };
     
-    // If the effect has a pattern, apply pattern modifiers
+    // Apply pattern and overrides
     if (overrides?.pattern || cfg.pattern) {
       const patternName = overrides?.pattern || cfg.pattern;
       if (patternName) {
@@ -143,7 +177,6 @@ export class ParticleEmitter {
         }
       }
     } else {
-      // No pattern, just apply overrides directly
       Object.assign(effectiveCfg, overrides);
     }
 
@@ -192,12 +225,15 @@ export class ParticleEmitter {
     // Update performance metrics
     this.updatePerformanceMetrics(currentTime, actualDeltaTime);
 
-    // Update particles with performance-adjusted deltaTime
+    // Process queued effects
+    this.emitQueuedEffects();
+
+    // Update particles
     for (const effectName in this.pools) {
       this.pools[effectName].updateAll(deltaTime);
     }
 
-    // Update active particle count for metrics
+    // Update metrics
     this.metrics.activeParticleCount = this.getTotalActiveParticles();
     this.metrics.poolSize = Object.values(this.pools).reduce((total, pool) => total + pool.getSize(), 0);
   }
@@ -249,5 +285,13 @@ export class ParticleEmitter {
       total += this.pools[effectName].getActiveParticleCount();
     }
     return total;
+  }
+
+  getQueueStats() {
+    return this.effectQueue.getQueueStats();
+  }
+
+  clearQueue(): void {
+    this.effectQueue.clear();
   }
 }
