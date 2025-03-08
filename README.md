@@ -5,7 +5,7 @@ A particle system plugin for the Hytopia SDK that provides a flexible and perfor
 ## Features
 
 - Easy-to-use particle effect system
-- Built-in patterns for common effects (explosion, burst, hit)
+- Built-in patterns for common effects (explosion, stream, spark)
 - Configurable via YAML or JSON
 - Performance optimization with adaptive particle counts
 - Physics-enabled and lightweight particle modes
@@ -69,19 +69,18 @@ effects:
       force: 1.5
       debris: true
     
-  gentleBurst:
-    pattern: burst
+  gentleStream:
+    pattern: stream
     patternModifiers:
       intensity: 0.5
-      spread: 30
+      spread: 15
       direction: { x: 0, y: 1, z: 0 }
 
   criticalHit:
-    pattern: hit
+    pattern: spark
     patternModifiers:
       impact: 2.0
       sparkle: true
-      scale: 1.5
 ```
 
 ### Custom Patterns
@@ -89,7 +88,7 @@ effects:
 You can create custom particle patterns by extending the Pattern class:
 
 ```typescript
-import { Pattern, ParticlePatternRegistry, type ParticleEffectConfig } from 'hytopia-model-particles';
+import { Pattern, ParticlePatternRegistry } from 'hytopia-model-particles';
 
 class FountainPattern extends Pattern {
   name = 'fountain';
@@ -97,8 +96,19 @@ class FountainPattern extends Pattern {
   defaultConfig: ParticleEffectConfig = {
     particleCount: 5,
     model: "models/particle_water.gltf",
-    usePhysics: true,
-    gravity: true,
+    physics: {
+      enabled: true,
+      rigidBody: {
+        type: 'dynamic',
+        useGravity: true,
+        gravityScale: 1,
+        material: {
+          restitution: 0.3,
+          friction: 0.8,
+          density: 1.0
+        }
+      }
+    },
     lifetime: 2,
     speed: { min: 8, max: 10 },
     direction: { x: 0, y: 1, z: 0 },
@@ -108,12 +118,13 @@ class FountainPattern extends Pattern {
 
   constructor() {
     super();
+    // Add fountain-specific modifiers
     this.modifiers = {
-      ...this.modifiers,
+      ...this.modifiers,  // Includes default modifiers (intensity, scale, duration)
       height: (config: ParticleEffectConfig, value: number) => ({
         ...config,
         speed: {
-          min: Math.sqrt(19.6 * value), // Calculate speed needed to reach height
+          min: Math.sqrt(19.6 * value),  // Calculate speed needed to reach height
           max: Math.sqrt(19.6 * value) * 1.2
         }
       })
@@ -133,78 +144,7 @@ emitter.emitEffect('fountain', position, {
 });
 ```
 
-## API Reference
-
-### ParticleEmitter
-
-The main class for managing particle effects.
-
-```typescript
-class ParticleEmitter {
-  constructor(world: World, config?: string | ParticleConfigFile);
-  static fromYaml(configFilePath: string, world: World): ParticleEmitter;
-  emitEffect(effectName: string, position: Vector3, overrides?: Partial<ParticleEffectConfig>): void;
-  update(deltaTime: number): void;
-}
-```
-
-### Pattern System
-
-The pattern system allows for flexible and reusable particle effects:
-
-```typescript
-abstract class Pattern {
-  abstract name: string;
-  abstract description?: string;
-  abstract defaultConfig: ParticleEffectConfig;
-  
-  // Common modifiers available to all patterns
-  protected getDefaultModifiers() {
-    return {
-      intensity: (config, value) => { /* affects particle count and speed */ },
-      scale: (config, value) => { /* affects particle size */ },
-      duration: (config, value) => { /* affects particle lifetime */ }
-    };
-  }
-}
-
-class ParticlePatternRegistry {
-  static registerPattern(pattern: Pattern): void;
-  static getPattern(name: string): Pattern | undefined;
-  static listPatterns(): { name: string; description?: string }[];
-}
-```
-
-### ParticleEffectConfig
-
-Configuration interface for particle effects.
-
-```typescript
-interface ParticleEffectConfig {
-  particleCount: number;           // Number of particles per effect
-  model?: string;                  // Model URI (e.g., a .gltf file)
-  usePhysics?: boolean;           // Whether physics is enabled
-  gravity?: boolean;              // Whether gravity applies
-  lifetime: number;               // Lifetime in seconds
-  speed: { min: number; max: number }; // Speed range
-  direction?: { x: number; y: number; z: number } | null;
-  spread: number;                 // Spread angle in degrees
-  size: number;                   // Scale of the particle
-  pattern?: string;               // Optional pattern reference
-  patternModifiers?: {           // Optional modifiers for the pattern
-    [key: string]: any;
-  };
-  color?: { r: number; g: number; b: number; a?: number }; // Optional color tint
-  fadeOut?: boolean;             // Whether particles should fade out over lifetime
-  rotationSpeed?: { min: number; max: number }; // Optional rotation speed range
-  scaleOverTime?: {             // Optional scale modification over lifetime
-    start: number;
-    end: number;
-  };
-}
-```
-
-## Built-in Patterns and Modifiers
+## Built-in Patterns
 
 ### Explosion Pattern
 - Base: Spherical burst of particles with physics
@@ -213,14 +153,14 @@ interface ParticleEffectConfig {
   - `force`: Multiplies particle speed
   - `debris`: Toggles physics and gravity
 
-### Burst Pattern
-- Base: Directional burst, typically upward
+### Stream Pattern
+- Base: Continuous stream of particles in a direction
 - Modifiers:
   - `intensity`: Affects particle count and speed
   - `spread`: Controls cone angle (0-360)
   - `direction`: Sets emission direction
 
-### Hit Pattern
+### Spark Pattern
 - Base: Quick spark effect for impacts
 - Modifiers:
   - `intensity`: Affects particle count and speed
