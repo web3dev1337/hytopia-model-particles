@@ -102,4 +102,84 @@ export class ParticleDataBuffer {
   getCapacity(): number {
     return this.capacity;
   }
+
+  // Resize the buffer to accommodate more particles
+  resize(newCapacity: number): void {
+    if (newCapacity === this.capacity) return;
+
+    const newBuffer = new Float32Array(newCapacity * ParticleDataBuffer.FLOATS_PER_PARTICLE);
+    
+    // Copy existing data
+    const copyLength = Math.min(this.capacity, newCapacity) * ParticleDataBuffer.FLOATS_PER_PARTICLE;
+    newBuffer.set(this.buffer.subarray(0, copyLength));
+    
+    this.buffer = newBuffer;
+    this.capacity = newCapacity;
+  }
+
+  // Dispose of the buffer
+  dispose(): void {
+    this.buffer = new Float32Array(0);
+    this.capacity = 0;
+  }
+
+  // Get memory usage in bytes
+  getMemoryUsage(): number {
+    return this.buffer.byteLength;
+  }
+
+  // Efficient batch operations using subarray views
+  copyRange(sourceIndex: number, targetIndex: number, count: number): void {
+    const sourceStart = sourceIndex * ParticleDataBuffer.FLOATS_PER_PARTICLE;
+    const targetStart = targetIndex * ParticleDataBuffer.FLOATS_PER_PARTICLE;
+    const length = count * ParticleDataBuffer.FLOATS_PER_PARTICLE;
+    this.buffer.copyWithin(targetStart, sourceStart, sourceStart + length);
+  }
+
+  // Batch update multiple particles at once
+  updateParticles(updates: Array<{
+    index: number;
+    position?: Vector3;
+    velocity?: Vector3;
+    scale?: number;
+    lifetime?: number;
+    flags?: number;
+  }>): void {
+    for (const update of updates) {
+      const baseIndex = update.index * ParticleDataBuffer.FLOATS_PER_PARTICLE;
+      if (update.position) {
+        this.buffer[baseIndex] = update.position.x;
+        this.buffer[baseIndex + 1] = update.position.y;
+        this.buffer[baseIndex + 2] = update.position.z;
+      }
+      if (update.velocity) {
+        this.buffer[baseIndex + 3] = update.velocity.x;
+        this.buffer[baseIndex + 4] = update.velocity.y;
+        this.buffer[baseIndex + 5] = update.velocity.z;
+      }
+      if (update.scale !== undefined) {
+        this.buffer[baseIndex + 6] = update.scale;
+      }
+      if (update.lifetime !== undefined) {
+        this.buffer[baseIndex + 7] = update.lifetime;
+      }
+      if (update.flags !== undefined) {
+        this.buffer[baseIndex + ParticleDataBuffer.FLAGS_OFFSET] = update.flags;
+      }
+    }
+  }
+
+  // Get a typed view of specific attributes for all particles
+  getAttributeView(attribute: 'position' | 'velocity'): Float32Array {
+    const stride = ParticleDataBuffer.FLOATS_PER_PARTICLE;
+    const offset = attribute === 'position' ? 0 : 3;
+    const length = this.capacity * 3;
+    
+    // Create a strided view of the buffer
+    return new Float32Array(
+      this.buffer.buffer,
+      offset * Float32Array.BYTES_PER_ELEMENT,
+      length
+    );
+  }
 } 

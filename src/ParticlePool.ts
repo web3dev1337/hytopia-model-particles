@@ -81,6 +81,13 @@ export class ParticlePool {
     // Update lifecycle manager with current state
     this.lifecycleManager.update(this.particles, this.cameraPosition, deltaTime);
 
+    // Prepare batch updates
+    const updates: Array<{
+      index: number;
+      position?: Vector3;
+      velocity?: Vector3;
+    }> = [];
+
     // Update active particles
     for (let i = 0; i < this.particles.length; i++) {
       const flags = this.dataBuffer.getFlags(i);
@@ -91,9 +98,12 @@ export class ParticlePool {
         // Update particle
         p.update(deltaTime);
         
-        // Update buffer with new data
-        this.dataBuffer.setPosition(i, p.position);
-        this.dataBuffer.setVelocity(i, p.velocity);
+        // Queue update
+        updates.push({
+          index: i,
+          position: p.position,
+          velocity: p.velocity
+        });
         
         // Update spatial grid if position changed
         if (oldPosition.x !== p.position.x || 
@@ -102,6 +112,11 @@ export class ParticlePool {
           this.spatialGrid.updateParticlePosition(p, oldPosition);
         }
       }
+    }
+
+    // Apply batch updates
+    if (updates.length > 0) {
+      this.dataBuffer.updateParticles(updates);
     }
   }
 
@@ -170,5 +185,53 @@ export class ParticlePool {
       flags &= ~ParticlePool.FLAG_SLEEPING;
     }
     this.dataBuffer.setFlags(index, flags);
+  }
+
+  // Add new methods for batch operations
+  updateParticlesBatch(updates: Array<{
+    particle: Entity;
+    position?: Vector3;
+    velocity?: Vector3;
+    scale?: number;
+    lifetime?: number;
+    flags?: number;
+  }>): void {
+    const bufferUpdates = updates.map(update => ({
+      index: (update.particle as any).index,
+      position: update.position,
+      velocity: update.velocity,
+      scale: update.scale,
+      lifetime: update.lifetime,
+      flags: update.flags
+    }));
+    
+    this.dataBuffer.updateParticles(bufferUpdates);
+  }
+
+  // Add method to handle resizing
+  resize(newCapacity: number): void {
+    this.dataBuffer.resize(newCapacity);
+  }
+
+  // Add cleanup method
+  dispose(): void {
+    this.dataBuffer.dispose();
+    this.spatialGrid.clear();
+    this.particles = [];
+  }
+
+  // Add memory usage tracking
+  getMemoryStats(): {
+    bufferSize: number;
+    particleCount: number;
+    activeCount: number;
+    sleepingCount: number;
+  } {
+    return {
+      bufferSize: this.dataBuffer.getMemoryUsage(),
+      particleCount: this.particles.length,
+      activeCount: this.getActiveParticleCount(),
+      sleepingCount: this.getSleepingParticleCount()
+    };
   }
 } 
