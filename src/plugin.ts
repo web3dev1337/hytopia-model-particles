@@ -1,6 +1,6 @@
 import { startServer, World } from 'hytopia';
-import { ParticleEmitter } from '../core/ParticleEmitter';
-import { ParticlePatternRegistry } from '../patterns/ParticlePatternsRegistry';
+import { ParticleEmitter } from './core/ParticleEmitter';
+import { ParticlePatternRegistry } from './patterns/ParticlePatternsRegistry';
 
 export function initializeParticles() {
   startServer((world) => {
