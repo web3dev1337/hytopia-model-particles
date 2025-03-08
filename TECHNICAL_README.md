@@ -348,21 +348,32 @@ if (metrics.averageFrameTime > 16.67) { // >60fps
 ### Project Structure
 ```
 src/
-├── patterns/
-│   ├── basePattern.ts
-│   ├── explosionPattern.ts
-│   ├── sparkPattern.ts
-│   └── streamPattern.ts
+├── config/
+│   └── ParticleConfigLoader.ts
 ├── core/
 │   ├── Particle.ts
 │   ├── ParticleEmitter.ts
 │   └── ParticlePool.ts
+├── data/
+│   └── ParticleDataBuffer.ts
+├── lifecycle/
+│   ├── ParticleEffectQueue.ts
+│   └── ParticleLifecycleManager.ts
+├── patterns/
+│   ├── base/
+│   │   └── basePattern.ts
+│   ├── built-in/
+│   │   ├── explosionPattern.ts
+│   │   ├── sparkPattern.ts
+│   │   └── streamPattern.ts
+│   └── ParticlePatternsRegistry.ts
 ├── physics/
 │   ├── PhysicsController.ts
 │   └── SpatialGrid.ts
-└── utils/
-    ├── ParticleDataBuffer.ts
-    └── utils.ts
+├── utils/
+│   └── utils.ts
+├── plugin.ts
+└── types.ts
 ```
 
 ### Development Workflow
