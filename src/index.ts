@@ -1,6 +1,7 @@
 export { ParticleEmitter } from './ParticleEmitter';
-export { registerParticlePattern } from './ParticlePatternsRegistry';
-export type { ParticleEffectConfig, ParticleConfigFile, Vector3 } from './types';
+export { ParticlePatternRegistry } from './ParticlePatternsRegistry';
+export { Pattern } from './patterns/basePattern';
+export * from './types';
 
 // Re-export pattern functions for convenience
 export { explosionPattern } from './patterns/explosionPattern';

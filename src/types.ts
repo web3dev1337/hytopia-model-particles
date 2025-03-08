@@ -3,6 +3,15 @@ export interface SpeedConfig {
   max: number;
 }
 
+export interface BasePattern {
+  name: string;
+  description?: string;
+  defaultConfig: ParticleEffectConfig;
+  modifiers?: {
+    [key: string]: (config: ParticleEffectConfig, value: any) => ParticleEffectConfig;
+  };
+}
+
 export interface ParticleEffectConfig {
   particleCount: number;           // Number of particles per effect trigger
   model?: string;                  // Model URI (e.g., a .gltf file)
@@ -14,6 +23,16 @@ export interface ParticleEffectConfig {
   spread: number;                 // Spread angle in degrees
   size: number;                   // Scale of the particle
   pattern?: string;               // Optional key to reference a preset pattern
+  patternModifiers?: {           // Optional modifiers for the pattern
+    [key: string]: any;
+  };
+  color?: { r: number; g: number; b: number; a?: number }; // Optional color tint
+  fadeOut?: boolean;             // Whether particles should fade out over lifetime
+  rotationSpeed?: SpeedConfig;   // Optional rotation speed range
+  scaleOverTime?: {             // Optional scale modification over lifetime
+    start: number;
+    end: number;
+  };
 }
 
 export interface ParticleConfigFile {

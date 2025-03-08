@@ -1,65 +1,42 @@
 import { ParticleEffectConfig } from './types';
+import { Pattern } from './patterns/basePattern';
+import { explosionPattern } from './patterns/explosionPattern';
+import { burstPattern } from './patterns/burstPattern';
+import { hitPattern } from './patterns/hitPattern';
 
-export type ParticlePatternFunction = (overrides?: Partial<ParticleEffectConfig>) => ParticleEffectConfig;
+export class ParticlePatternRegistry {
+  private static patterns: Map<string, Pattern> = new Map();
 
-const defaultExplosionPattern: ParticlePatternFunction = (overrides = {}) => {
-  const config: ParticleEffectConfig = {
-    particleCount: 50,
-    model: "models/particle_rock.gltf",
-    usePhysics: true,
-    gravity: true,
-    lifetime: 3,
-    speed: { min: 5, max: 10 },
-    direction: null,
-    spread: 360,
-    size: 0.2
-  };
-  return { ...config, ...overrides };
-};
-
-const defaultBurstPattern: ParticlePatternFunction = (overrides = {}) => {
-  const config: ParticleEffectConfig = {
-    particleCount: 15,
-    model: "models/particle_smoke.gltf",
-    usePhysics: false,
-    gravity: false,
-    lifetime: 1.5,
-    speed: { min: 1, max: 2 },
-    direction: { x: 0, y: 1, z: 0 },
-    spread: 45,
-    size: 0.5
-  };
-  return { ...config, ...overrides };
-};
-
-const defaultHitPattern: ParticlePatternFunction = (overrides = {}) => {
-  const config: ParticleEffectConfig = {
-    particleCount: 10,
-    model: "models/particle_spark.gltf",
-    usePhysics: false,
-    gravity: false,
-    lifetime: 0.5,
-    speed: { min: 2, max: 4 },
-    direction: null,
-    spread: 60,
-    size: 0.1
-  };
-  return { ...config, ...overrides };
-};
-
-export const ParticlePatternRegistry: { [name: string]: ParticlePatternFunction } = {
-  explosion: defaultExplosionPattern,
-  burst: defaultBurstPattern,
-  hit: defaultHitPattern
-};
-
-export function registerParticlePattern(name: string, patternFunc: ParticlePatternFunction): void {
-  if (ParticlePatternRegistry[name]) {
-    console.warn(`Pattern "${name}" already exists and will be overwritten.`);
+  static {
+    // Register default patterns
+    this.registerPattern(explosionPattern);
+    this.registerPattern(burstPattern);
+    this.registerPattern(hitPattern);
   }
-  ParticlePatternRegistry[name] = patternFunc;
-}
 
-export function getParticlePattern(name: string): ParticlePatternFunction | undefined {
-  return ParticlePatternRegistry[name];
+  static registerPattern(pattern: Pattern): void {
+    if (this.patterns.has(pattern.name)) {
+      console.warn(`Pattern "${pattern.name}" already exists and will be overwritten.`);
+    }
+    this.patterns.set(pattern.name, pattern);
+  }
+
+  static getPattern(name: string): Pattern | undefined {
+    return this.patterns.get(name);
+  }
+
+  static generateConfig(patternName: string, overrides?: Partial<ParticleEffectConfig>): ParticleEffectConfig {
+    const pattern = this.getPattern(patternName);
+    if (!pattern) {
+      throw new Error(`Pattern "${patternName}" not found.`);
+    }
+    return pattern.generate(overrides);
+  }
+
+  static listPatterns(): { name: string; description?: string }[] {
+    return Array.from(this.patterns.values()).map(pattern => ({
+      name: pattern.name,
+      description: pattern.description
+    }));
+  }
 } 
