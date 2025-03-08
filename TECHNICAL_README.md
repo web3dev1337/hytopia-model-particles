@@ -10,47 +10,40 @@ The particle system is built with performance and flexibility in mind, utilizing
    - Main interface for particle system control
    - Manages particle creation and lifecycle
    - Handles pattern application and modifications
-   - Size: ~10KB, 322 lines
 
 2. **ParticlePool** (`ParticlePool.ts`)
    - Efficient particle object pooling
    - Reduces garbage collection overhead
    - Manages particle recycling
-   - Size: ~7KB, 237 lines
 
 3. **ParticleDataBuffer** (`ParticleDataBuffer.ts`)
    - Optimized data storage for particle properties
    - Efficient memory management
-   - Size: ~6KB, 185 lines
 
 4. **ParticleLifecycleManager** (`ParticleLifecycleManager.ts`)
    - Handles particle creation, updates, and destruction
    - Manages particle state transitions
-   - Size: ~6KB, 211 lines
 
 ### Physics and Spatial Management
 
 1. **PhysicsController** (`PhysicsController.ts`)
    - Manages particle physics simulation
    - Handles collisions and forces
-   - Size: ~5KB, 154 lines
 
 2. **SpatialGrid** (`SpatialGrid.ts`)
    - Spatial partitioning for efficient collision detection
    - Optimizes particle interactions
-   - Size: ~4KB, 149 lines
 
 ### Pattern System
 
 1. **ParticlePatternsRegistry** (`ParticlePatternsRegistry.ts`)
    - Central registry for particle effect patterns
    - Pattern management and retrieval
-   - Size: ~1.4KB, 42 lines
 
 2. **ParticleConfigLoader** (`ParticleConfigLoader.ts`)
    - YAML/JSON configuration loading
    - Pattern validation and processing
-   - Size: ~2KB, 59 lines
+
 
 ## Technical Specifications
 
