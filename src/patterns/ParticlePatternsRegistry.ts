@@ -1,8 +1,8 @@
 import { ParticleEffectConfig } from '../types';
-import { Pattern } from './patterns/basePattern';
-import { explosionPattern } from './patterns/explosionPattern';
-import { streamPattern } from './patterns/streamPattern';
-import { sparkPattern } from './patterns/sparkPattern';
+import { Pattern } from './base/basePattern';
+import { explosionPattern } from './built-in/explosionPattern';
+import { streamPattern } from './built-in/streamPattern';
+import { sparkPattern } from './built-in/sparkPattern';
 
 export class ParticlePatternRegistry {
   private static patterns: Map<string, Pattern> = new Map();

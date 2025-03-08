@@ -1,4 +1,4 @@
-import { BasePattern, ParticleEffectConfig } from '../types';
+import { BasePattern, ParticleEffectConfig } from '../../types';
 
 export abstract class Pattern implements BasePattern {
   abstract name: string;

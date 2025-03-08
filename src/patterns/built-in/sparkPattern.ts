@@ -1,5 +1,5 @@
-import { ParticleEffectConfig } from '../types';
-import { Pattern } from '../patterns/base/basePattern';
+import { ParticleEffectConfig } from '../../types';
+import { Pattern } from '../base/basePattern';
 
 export class SparkPattern extends Pattern {
   name = 'spark';
