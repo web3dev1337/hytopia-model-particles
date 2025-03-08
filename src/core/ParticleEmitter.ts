@@ -110,8 +110,8 @@ export class ParticleEmitter {
     return {
       effects: {
         explosion: ParticlePatternRegistry.generateConfig('explosion'),
-        burst: ParticlePatternRegistry.generateConfig('burst'),
-        hit: ParticlePatternRegistry.generateConfig('hit'),
+        stream: ParticlePatternRegistry.generateConfig('stream'),
+        spark: ParticlePatternRegistry.generateConfig('spark'),
       },
       global: {
         adaptivePerformance: true,
