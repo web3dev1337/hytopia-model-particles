@@ -13,10 +13,10 @@ A powerful and flexible particle system plugin for the Hytopia SDK that brings l
 - 🎯 Physics-enabled particles with collision support
 - 🔧 Extensible pattern system
 
-## 📦 Installation
+## 📦 Installation  [NOT UPLOADED YET]
 
 ```bash
-npm install hytopia-model-particles
+npm install hytopia-model-particles [NOT UPLOADED YET]
 ```
 
 **Requirements:**
