@@ -201,4 +201,184 @@ Contributions are welcome! Please check our [Contributing Guidelines](CONTRIBUTI
 
 ## 📄 License
 
-MIT License - feel free to use in your Hytopia games! 
+MIT License - feel free to use in your Hytopia games!
+
+## 📝 Configuration Guide
+
+### Global Configuration
+
+You can set global options in your `particles.yml` or via code:
+
+```yaml
+global:
+  adaptivePerformance: true    # Automatically adjust particle counts based on performance
+  maxParticles: 1000          # Maximum particles across all effects
+  poolOptions:
+    cellSize: 5              # Size of spatial grid cells
+    sleepDistance: 50        # Distance at which particles go to sleep
+    cleanupCheckInterval: 1000  # Milliseconds between cleanup checks
+    bounds:                  # World boundaries for particles
+      min: { x: -1000, y: -1000, z: -1000 }
+      max: { x: 1000, y: 1000, z: 1000 }
+```
+
+### Effect Configuration
+
+Each effect can be configured with these parameters:
+
+```yaml
+effects:
+  myEffect:
+    particleCount: 100        # Number of particles to emit
+    model: "models/particle.gltf"  # 3D model to use (optional)
+    lifetime: 2              # Particle lifetime in seconds
+    speed:
+      min: 5                # Minimum initial speed
+      max: 10               # Maximum initial speed
+    direction:              # Emission direction (optional)
+      x: 0
+      y: 1
+      z: 0
+    spread: 15             # Spread angle in degrees
+    size: 0.5              # Particle size/scale
+    fadeOut: true          # Fade out over lifetime
+    rotationSpeed:         # Rotation speed range (optional)
+      min: 0
+      max: 360
+    scaleOverTime:         # Size change over lifetime (optional)
+      start: 1.0
+      end: 0.0
+    color:                 # Particle color tint (optional)
+      r: 1.0
+      g: 0.5
+      b: 0.0
+      a: 1.0              # Alpha (optional)
+    physics:              # Physics configuration (optional)
+      enabled: true
+      rigidBody:
+        type: "dynamic"    # dynamic, static, or kinematic
+        mass: 1.0
+        useGravity: true
+        gravityScale: 1.0
+        linearDamping: 0.1
+        angularDamping: 0.1
+        fixedRotation: false
+        material:
+          restitution: 0.5  # Bounciness (0-1)
+          friction: 0.5     # Surface friction (0-1)
+          density: 1.0      # Material density
+        colliders:
+          - shape: "sphere"  # sphere, box, or cylinder
+            size: { x: 1, y: 1, z: 1 }  # or radius for sphere
+            offset: { x: 0, y: 0, z: 0 }
+            isTrigger: false
+      forces:              # Optional forces
+        wind:
+          direction: { x: 1, y: 0, z: 0 }
+          strength: 10
+          turbulence: 0.5
+        vortex:
+          center: { x: 0, y: 0, z: 0 }
+          strength: 5
+          radius: 10
+```
+
+### Pattern System
+
+Patterns provide default configurations that can be overridden. Here's how to create and use patterns:
+
+```typescript
+// Define a pattern
+class FirePattern extends Pattern {
+  name = 'fire';
+  description = 'A realistic fire effect';
+  
+  defaultConfig = {
+    particleCount: 50,
+    lifetime: 1.5,
+    speed: { min: 2, max: 4 },
+    direction: { x: 0, y: 1, z: 0 },
+    spread: 25,
+    size: 0.3,
+    fadeOut: true,
+    color: { r: 1, g: 0.5, b: 0.1 },
+    scaleOverTime: {
+      start: 1.0,
+      end: 0.0
+    },
+    physics: {
+      enabled: true,
+      forces: {
+        wind: {
+          direction: { x: 0, y: 1, z: 0 },
+          strength: 2,
+          turbulence: 0.3
+        }
+      }
+    }
+  };
+
+  // Custom modifiers
+  modifiers = {
+    intensity: (config, value) => ({
+      ...config,
+      particleCount: Math.floor(config.particleCount * value),
+      speed: {
+        min: config.speed.min * value,
+        max: config.speed.max * value
+      }
+    }),
+    heat: (config, value) => ({
+      ...config,
+      color: {
+        r: 1,
+        g: 0.2 + (value * 0.3),
+        b: 0.1
+      }
+    })
+  };
+}
+
+// Register the pattern
+ParticlePatternRegistry.registerPattern(new FirePattern());
+
+// Use the pattern with overrides
+emitter.emitEffect('fire', position, {
+  patternModifiers: {
+    intensity: 1.5,  // 50% more particles and speed
+    heat: 0.8       // Hotter fire (more yellow)
+  },
+  // Override any default config
+  lifetime: 2.0,    // Longer lifetime
+  size: 0.5        // Larger particles
+});
+```
+
+### Using Configuration Files
+
+You can combine patterns and custom configurations in YAML:
+
+```yaml
+effects:
+  campfire:
+    pattern: fire          # Use fire pattern as base
+    patternModifiers:
+      intensity: 0.7      # Smaller fire
+      heat: 0.3          # Cooler fire (more red)
+    # Override pattern defaults
+    spread: 20           
+    physics:
+      forces:
+        wind:
+          strength: 1.5   # Less wind effect
+
+  inferno:
+    pattern: fire
+    patternModifiers:
+      intensity: 2.0      # Bigger fire
+      heat: 1.0          # Hottest fire (more yellow)
+    # Add additional effects
+    rotationSpeed:
+      min: 90
+      max: 180
+``` 
