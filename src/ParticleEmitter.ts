@@ -1,4 +1,4 @@
-import { World, ParticleEffectConfig, ParticleConfigFile, Vector3, PerformanceMetrics } from './types';
+import { World, ParticleEffectConfig, ParticleConfigFile, Vector3, PerformanceMetrics, CleanupStats } from './types';
 import { loadParticleConfig, validateConfig } from './ParticleConfigLoader';
 import { ParticlePool } from './ParticlePool';
 import { ParticlePatternRegistry } from './ParticlePatternsRegistry';
@@ -37,18 +37,29 @@ export class ParticleEmitter {
     this.effectQueue = new ParticleEffectQueue({
       maxQueueSize: 1000,
       batchSize: 10,
-      maxEffectsPerFrame: Math.floor(this.maxParticles * 0.1), // 10% of max particles per frame
-      defaultMaxAge: 1000 // 1 second
+      maxEffectsPerFrame: Math.floor(this.maxParticles * 0.1),
+      defaultMaxAge: 1000
     });
+
+    // Initialize pools with default options
+    const defaultPoolOptions = {
+      cellSize: 10,
+      sleepDistance: 100,
+      cleanupCheckInterval: 1000,
+      bounds: {
+        min: { x: -1000, y: -1000, z: -1000 },
+        max: { x: 1000, y: 1000, z: 1000 }
+      }
+    };
 
     if (config) {
       if (typeof config === 'string') {
         this.loadConfigFromFile(config);
       } else {
-        this.applyConfig(config);
+        this.applyConfig(config, defaultPoolOptions);
       }
     } else {
-      this.applyConfig(this.getDefaultConfig());
+      this.applyConfig(this.getDefaultConfig(), defaultPoolOptions);
     }
   }
 
@@ -67,38 +78,12 @@ export class ParticleEmitter {
     }
   }
 
-  private applyConfig(configObj: ParticleConfigFile): void {
+  private applyConfig(configObj: ParticleConfigFile, poolOptions?: any): void {
     const defaults = this.getDefaultConfig();
     const merged: ParticleConfigFile = { effects: {}, global: {} };
 
     // Merge global settings
     merged.global = { ...defaults.global, ...configObj.global };
-
-    // Start with default effects
-    for (const effectName in defaults.effects) {
-      merged.effects[effectName] = { ...defaults.effects[effectName] };
-    }
-
-    // Merge with provided effects
-    for (const effectName in configObj.effects) {
-      let mergedEffect = { ...merged.effects[effectName], ...configObj.effects[effectName] };
-
-      // Apply pattern if specified
-      if (mergedEffect.pattern) {
-        const patternName = mergedEffect.pattern as string;
-        try {
-          const pattern = ParticlePatternRegistry.getPattern(patternName);
-          if (pattern) {
-            mergedEffect = pattern.generate(mergedEffect);
-          } else {
-            console.warn(`Pattern "${patternName}" not found, using effect config as is.`);
-          }
-        } catch (err) {
-          console.warn(`Error applying pattern "${patternName}":`, err);
-        }
-      }
-      merged.effects[effectName] = mergedEffect;
-    }
 
     // Apply global settings
     if (merged.global) {
@@ -106,13 +91,18 @@ export class ParticleEmitter {
       if (merged.global.maxParticles) {
         this.maxParticles = merged.global.maxParticles;
       }
+
+      // Update pool options if provided in global config
+      if (poolOptions && merged.global.poolOptions) {
+        Object.assign(poolOptions, merged.global.poolOptions);
+      }
     }
 
-    // Initialize effect pools
+    // Initialize effect pools with options
     this.effectConfigs = merged.effects;
     this.pools = {};
     for (const effectName in this.effectConfigs) {
-      this.pools[effectName] = new ParticlePool();
+      this.pools[effectName] = new ParticlePool(poolOptions);
     }
   }
 
@@ -235,7 +225,7 @@ export class ParticleEmitter {
 
     // Update metrics
     this.metrics.activeParticleCount = this.getTotalActiveParticles();
-    this.metrics.poolSize = Object.values(this.pools).reduce((total, pool) => total + pool.getSize(), 0);
+    this.metrics.poolSize = Object.values(this.pools).reduce((total, pool) => total + pool.getTotalParticleCount(), 0);
   }
 
   private updatePerformanceMetrics(currentTime: number, deltaTime: number): void {
@@ -293,5 +283,31 @@ export class ParticleEmitter {
 
   clearQueue(): void {
     this.effectQueue.clear();
+  }
+
+  setCameraPosition(position: Vector3): void {
+    for (const pool of Object.values(this.pools)) {
+      pool.setCameraPosition(position);
+    }
+  }
+
+  setWorldBounds(min: Vector3, max: Vector3): void {
+    for (const pool of Object.values(this.pools)) {
+      pool.setWorldBounds(min, max);
+    }
+  }
+
+  setSleepDistance(distance: number): void {
+    for (const pool of Object.values(this.pools)) {
+      pool.setSleepDistance(distance);
+    }
+  }
+
+  getCleanupStats(): { [effectName: string]: CleanupStats } {
+    const stats: { [effectName: string]: CleanupStats } = {};
+    for (const [effectName, pool] of Object.entries(this.pools)) {
+      stats[effectName] = pool.getCleanupStats();
+    }
+    return stats;
   }
 }

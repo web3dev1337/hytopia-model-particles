@@ -97,6 +97,15 @@ export interface ParticleConfigFile {
   global?: {
     adaptivePerformance?: boolean;
     maxParticles?: number;
+    poolOptions?: {
+      cellSize?: number;
+      sleepDistance?: number;
+      cleanupCheckInterval?: number;
+      bounds?: {
+        min: Vector3;
+        max: Vector3;
+      };
+    };
   };
 }
 
@@ -116,6 +125,7 @@ export interface World {
 
 export interface Entity {
   isSpawned: boolean;
+  isSleeping?: boolean;
   position: Vector3;
   velocity: Vector3;
   rawRigidBody?: {
@@ -131,8 +141,14 @@ export interface Entity {
     setAngularDamping(damping: number): void;
     setFixedRotation(fixed: boolean): void;
     getMass(): number;
+    setSleeping(sleeping: boolean): void;
+    isSleeping(): boolean;
   };
   modelScale: number;
+  spawnTime: number;
+  lastUpdateTime: number;
+  sleepThreshold?: number;  // Velocity threshold for auto-sleep
+  cleanupDelay?: number;   // Time to wait after despawn before cleanup
   
   spawn(
     world: World,
@@ -144,4 +160,19 @@ export interface Entity {
   despawn(): void;
   update(deltaTime: number): void;
   setTintColor?(color: { r: number; g: number; b: number }): void;
+  sleep?(): void;
+  wake?(): void;
+  cleanup?(): void;
+  shouldCleanup?(): boolean;
+}
+
+export interface CleanupStats {
+  totalCleaned: number;
+  byReason: {
+    expired: number;
+    outOfBounds: number;
+    manual: number;
+    error: number;
+  };
+  memoryReclaimed?: number;
 } 
