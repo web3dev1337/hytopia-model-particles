@@ -1,9 +1,9 @@
-import { World, ParticleEffectConfig, ParticleConfigFile, Vector3, PerformanceMetrics, CleanupStats } from './types';
-import { loadParticleConfig, validateConfig } from './ParticleConfigLoader';
-import { ParticlePool } from './ParticlePool';
-import { ParticlePatternRegistry } from './ParticlePatternsRegistry';
-import { randomRange, randomDirectionWithinCone } from './utils';
-import { ParticleEffectQueue } from './ParticleEffectQueue';
+import { World, ParticleEffectConfig, ParticleConfigFile, Vector3, PerformanceMetrics, CleanupStats } from '../types';
+import { loadParticleConfig, validateConfig } from '../config/ParticleConfigLoader';
+import { ParticlePool } from '../core/ParticlePool';
+import { ParticlePatternRegistry } from '../patterns/ParticlePatternsRegistry';
+import { randomRange, randomDirectionWithinCone } from '../utils/utils';
+import { ParticleEffectQueue } from '../lifecycle/ParticleEffectQueue';
 
 const FPS_HISTORY_SIZE = 60; // Keep track of last 60 frames (1 second at 60fps)
 const TARGET_FPS = 60;

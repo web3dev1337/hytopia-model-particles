@@ -1,4 +1,4 @@
-import { Entity, Vector3, CleanupStats } from './types';
+import { Entity, Vector3, CleanupStats } from '../types';
 
 interface BoundingBox {
   min: Vector3;

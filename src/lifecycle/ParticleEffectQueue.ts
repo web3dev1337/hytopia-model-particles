@@ -1,4 +1,4 @@
-import { Vector3, ParticleEffectConfig } from './types';
+import { Vector3, ParticleEffectConfig } from '../types';
 
 interface QueuedEffect {
   effectName: string;

@@ -1,7 +1,7 @@
-import { Entity, Vector3, RigidBodyOptions, CleanupStats } from './types';
-import { SpatialGrid } from './SpatialGrid';
-import { ParticleLifecycleManager } from './ParticleLifecycleManager';
-import { ParticleDataBuffer } from './ParticleDataBuffer';
+import { Entity, Vector3, RigidBodyOptions, CleanupStats } from '../types';
+import { SpatialGrid } from '../physics/SpatialGrid';
+import { ParticleLifecycleManager } from '../lifecycle/ParticleLifecycleManager';
+import { ParticleDataBuffer } from '../data/ParticleDataBuffer';
 
 export class ParticlePool {
   private particles: Entity[] = [];

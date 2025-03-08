@@ -1,4 +1,4 @@
-import { Entity, Vector3, World } from './types';
+import { Entity, Vector3, World } from '../types';
 
 export class Particle {
   private entity: Entity;

@@ -1,4 +1,4 @@
-import { Vector3 } from './types';
+import { Vector3 } from '../types';
 
 export function randomRange(min: number, max: number): number {
   return min + Math.random() * (max - min);

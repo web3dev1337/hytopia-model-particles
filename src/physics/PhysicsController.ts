@@ -1,4 +1,4 @@
-import { PhysicsConfig, Vector3, Entity } from './types';
+import { PhysicsConfig, Vector3, Entity } from '../types';
 
 export class PhysicsController {
   private config: PhysicsConfig;

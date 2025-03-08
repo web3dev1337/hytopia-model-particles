@@ -1,4 +1,4 @@
-import { Vector3 } from './types';
+import { Vector3 } from '../types';
 
 export class ParticleDataBuffer {
   // Position (x,y,z), Velocity (x,y,z), Scale, LifeTime, Flags

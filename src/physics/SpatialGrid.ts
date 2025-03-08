@@ -1,4 +1,4 @@
-import { Vector3, Entity } from './types';
+import { Vector3, Entity } from '../types';
 
 interface GridCell {
   particles: Set<Entity>;

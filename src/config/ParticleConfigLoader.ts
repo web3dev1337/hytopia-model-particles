@@ -1,6 +1,6 @@
 import { readFileSync } from 'fs';
 import { load as loadYAML } from 'js-yaml';
-import { ParticleConfigFile } from './types';
+import { ParticleConfigFile } from '../types';
 
 export function loadParticleConfig(filePath: string): ParticleConfigFile {
   try {

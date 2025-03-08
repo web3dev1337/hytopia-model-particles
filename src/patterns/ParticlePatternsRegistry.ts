@@ -1,4 +1,4 @@
-import { ParticleEffectConfig } from './types';
+import { ParticleEffectConfig } from '../types';
 import { Pattern } from './patterns/basePattern';
 import { explosionPattern } from './patterns/explosionPattern';
 import { streamPattern } from './patterns/streamPattern';

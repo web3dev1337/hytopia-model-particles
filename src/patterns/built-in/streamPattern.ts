@@ -1,5 +1,5 @@
 import { ParticleEffectConfig } from '../types';
-import { Pattern } from './basePattern';
+import { Pattern } from '../patterns/base/basePattern';
 
 export class StreamPattern extends Pattern {
   name = 'stream';
