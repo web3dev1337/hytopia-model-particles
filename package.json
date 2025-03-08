@@ -1,0 +1,32 @@
+{
+  "name": "hytopia-model-particles",
+  "version": "1.0.0",
+  "description": "A particle system plugin for the Hytopia SDK",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "prepare": "npm run build",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "hytopia",
+    "particles",
+    "effects",
+    "game",
+    "sdk"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "js-yaml": "^4.1.0"
+  },
+  "devDependencies": {
+    "@types/js-yaml": "^4.0.5",
+    "@types/node": "^20.11.24",
+    "typescript": "^5.3.3"
+  },
+  "peerDependencies": {
+    "@hytopia/sdk": "*"
+  }
+}

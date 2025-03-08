@@ -1,0 +1,40 @@
+global:
+  adaptivePerformance: true
+  maxParticles: 500
+
+effects:
+  explosion:
+    pattern: explosion
+    particleCount: 60
+    model: "models/explosion_debris.gltf"
+    size: 0.3
+
+  hit:
+    pattern: hit
+    model: "models/hit_spark.gltf"
+    speed:
+      min: 3
+      max: 5
+
+  death:
+    pattern: burst
+    particleCount: 20
+    model: "models/death_smoke.gltf"
+    lifetime: 2.0
+    size: 0.6
+
+  custom_burst:
+    particleCount: 25
+    model: "models/custom_particle.gltf"
+    usePhysics: true
+    gravity: true
+    lifetime: 1.0
+    speed:
+      min: 2
+      max: 4
+    direction:
+      x: 0
+      y: 1
+      z: 0
+    spread: 30
+    size: 0.4 
