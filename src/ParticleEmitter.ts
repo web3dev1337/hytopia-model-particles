@@ -53,17 +53,18 @@ export class ParticleEmitter {
 
     // Merge with provided effects
     for (const effectName in configObj.effects) {
-      merged.effects[effectName] = { ...merged.effects[effectName], ...configObj.effects[effectName] };
-      
+      let mergedEffect = { ...merged.effects[effectName], ...configObj.effects[effectName] };
+
       // Apply pattern if specified
-      if (merged.effects[effectName].pattern) {
-        const patternName = merged.effects[effectName].pattern as string;
+      if (mergedEffect.pattern) {
+        const patternName = mergedEffect.pattern as string;
         const patternFunc = ParticlePatternRegistry[patternName];
         if (patternFunc) {
-          merged.effects[effectName] = { ...patternFunc(), ...merged.effects[effectName] };
-          delete merged.effects[effectName].pattern;
+          mergedEffect = { ...patternFunc(), ...mergedEffect };
+          delete mergedEffect.pattern;
         }
       }
+      merged.effects[effectName] = mergedEffect;
     }
 
     // Apply global settings
@@ -148,18 +149,12 @@ export class ParticleEmitter {
   }
 
   update(deltaTime: number): void {
-    // Update FPS tracking
     const currentFPS = deltaTime > 0 ? (1 / deltaTime) : 60;
     this.avgFps = 0.95 * this.avgFps + 0.05 * currentFPS;
 
-    // Update all particle pools
     for (const effectName in this.pools) {
       const cfg = this.effectConfigs[effectName];
-      this.pools[effectName].updateAll(
-        deltaTime,
-        cfg.usePhysics ?? false,
-        cfg.gravity ?? true
-      );
+      this.pools[effectName].updateAll(deltaTime, cfg.usePhysics ?? false, cfg.gravity ?? true);
     }
   }
 
