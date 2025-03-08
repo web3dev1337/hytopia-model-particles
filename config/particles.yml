@@ -9,15 +9,15 @@ effects:
     model: "models/explosion_debris.gltf"
     size: 0.3
 
-  hit:
-    pattern: hit
+  impact:
+    pattern: spark
     model: "models/hit_spark.gltf"
     speed:
       min: 3
       max: 5
 
-  death:
-    pattern: burst
+  stream_effect:
+    pattern: stream
     particleCount: 20
     model: "models/death_smoke.gltf"
     lifetime: 2.0
