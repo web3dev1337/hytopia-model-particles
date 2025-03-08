@@ -1,19 +1,28 @@
 import { Entity, Vector3, RigidBodyOptions, CleanupStats } from './types';
 import { SpatialGrid } from './SpatialGrid';
 import { ParticleLifecycleManager } from './ParticleLifecycleManager';
+import { ParticleDataBuffer } from './ParticleDataBuffer';
 
 export class ParticlePool {
   private particles: Entity[] = [];
+  private dataBuffer: ParticleDataBuffer;
   private spatialGrid: SpatialGrid;
   private lifecycleManager: ParticleLifecycleManager;
   private cameraPosition: Vector3 = { x: 0, y: 0, z: 0 };
+
+  // Flags for particle state
+  private static readonly FLAG_SPAWNED = 1;
+  private static readonly FLAG_SLEEPING = 2;
 
   constructor(options: {
     cellSize?: number;
     bounds?: { min: Vector3; max: Vector3 };
     sleepDistance?: number;
     cleanupCheckInterval?: number;
+    maxParticles?: number;
   } = {}) {
+    const maxParticles = options.maxParticles || 1000;
+    this.dataBuffer = new ParticleDataBuffer(maxParticles);
     this.spatialGrid = new SpatialGrid(options.cellSize);
     this.lifecycleManager = new ParticleLifecycleManager({
       bounds: options.bounds,
@@ -28,32 +37,44 @@ export class ParticlePool {
     this.cleanupInactiveParticles();
 
     // Find an unused particle in the pool
-    for (const p of this.particles) {
-      if (!p.isSpawned) {
-        return p;
+    for (let i = 0; i < this.particles.length; i++) {
+      const flags = this.dataBuffer.getFlags(i);
+      if (!(flags & ParticlePool.FLAG_SPAWNED)) {
+        const particle = this.particles[i];
+        // Initialize particle data
+        this.dataBuffer.setScale(i, size || 1);
+        this.dataBuffer.setFlags(i, ParticlePool.FLAG_SPAWNED);
+        return particle;
       }
     }
 
     // No free particle found, create a new one if we haven't hit maxPoolSize
     if (this.particles.length < maxPoolSize) {
+      const index = this.particles.length;
       // @ts-ignore - Using placeholder Entity creation for now
       const newParticle = new Entity({
         modelUri,
         modelScale: size,
-        rigidBodyOptions
+        rigidBodyOptions,
+        index // Store the buffer index in the entity
       });
+      
       this.particles.push(newParticle);
+      this.dataBuffer.setScale(index, size || 1);
+      this.dataBuffer.setFlags(index, ParticlePool.FLAG_SPAWNED);
       return newParticle;
     }
 
-    // Pool is at max capacity and all particles are in use
     return null;
   }
 
   releaseParticle(p: Entity) {
-    this.spatialGrid.removeParticle(p);
-    p.despawn();
-    // Actual cleanup will be handled by lifecycle manager
+    const index = (p as any).index;
+    if (typeof index !== 'undefined') {
+      this.spatialGrid.removeParticle(p);
+      this.dataBuffer.setFlags(index, 0); // Clear all flags
+      p.despawn();
+    }
   }
 
   updateAll(deltaTime: number): void {
@@ -61,10 +82,18 @@ export class ParticlePool {
     this.lifecycleManager.update(this.particles, this.cameraPosition, deltaTime);
 
     // Update active particles
-    for (const p of this.particles) {
-      if (p.isSpawned && !p.isSleeping) {
-        const oldPosition = { ...p.position };
+    for (let i = 0; i < this.particles.length; i++) {
+      const flags = this.dataBuffer.getFlags(i);
+      if ((flags & ParticlePool.FLAG_SPAWNED) && !(flags & ParticlePool.FLAG_SLEEPING)) {
+        const p = this.particles[i];
+        const oldPosition = this.dataBuffer.getPosition(i);
+        
+        // Update particle
         p.update(deltaTime);
+        
+        // Update buffer with new data
+        this.dataBuffer.setPosition(i, p.position);
+        this.dataBuffer.setVelocity(i, p.velocity);
         
         // Update spatial grid if position changed
         if (oldPosition.x !== p.position.x || 
@@ -125,5 +154,21 @@ export class ParticlePool {
 
   getCellCount(): number {
     return this.spatialGrid.getCellCount();
+  }
+
+  // New method to get position buffer for rendering
+  getPositionBuffer(): Float32Array {
+    return this.dataBuffer.getPositionBuffer();
+  }
+
+  // Update particle state flags
+  setParticleSleeping(index: number, sleeping: boolean): void {
+    let flags = this.dataBuffer.getFlags(index);
+    if (sleeping) {
+      flags |= ParticlePool.FLAG_SLEEPING;
+    } else {
+      flags &= ~ParticlePool.FLAG_SLEEPING;
+    }
+    this.dataBuffer.setFlags(index, flags);
   }
 } 
