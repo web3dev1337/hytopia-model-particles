@@ -146,4 +146,250 @@ npm test
 
 # Lint code
 npm run lint
-``` 
+```
+
+## Component Details
+
+### Queue and Lifecycle Management
+
+1. **ParticleEffectQueue** (`ParticleEffectQueue.ts`)
+   - Manages effect scheduling and execution
+   - Handles effect priorities and timing
+   - Prevents effect overlap and conflicts
+   - Size: ~4.9KB, 169 lines
+
+2. **ParticleLifecycleManager** (`ParticleLifecycleManager.ts`)
+   - Controls particle state transitions
+   - Manages particle spawning and despawning
+   - Handles cleanup and memory management
+   - Size: ~6.3KB, 211 lines
+
+### Data Management
+
+1. **ParticleDataBuffer** (`ParticleDataBuffer.ts`)
+   - Efficient typed array storage
+   - SIMD-friendly data layout
+   - Handles particle property updates
+   - Size: ~5.9KB, 185 lines
+
+2. **Particle** (`Particle.ts`)
+   - Base particle entity implementation
+   - Property management and updates
+   - Integration with physics system
+   - Size: ~1.5KB, 50 lines
+
+### Built-in Patterns
+
+Located in `src/patterns/`:
+
+1. **BasePattern** (`basePattern.ts`)
+   - Abstract pattern implementation
+   - Common modifier handling
+   - Default configuration management
+   - Size: ~1.7KB, 54 lines
+
+2. **ExplosionPattern** (`explosionPattern.ts`)
+   ```typescript
+   // Example configuration
+   {
+     particleCount: 30,
+     speed: { min: 10, max: 15 },
+     spread: 360,
+     lifetime: { min: 0.5, max: 1.5 },
+     physics: {
+       enabled: true,
+       rigidBody: {
+         useGravity: true,
+         gravityScale: 1.0
+       }
+     }
+   }
+   ```
+   - Radial burst emission
+   - Physics-based debris
+   - Size: ~1.6KB, 63 lines
+
+3. **StreamPattern** (`streamPattern.ts`)
+   ```typescript
+   // Example configuration
+   {
+     particleCount: 20,
+     speed: { min: 5, max: 8 },
+     spread: 15,
+     lifetime: 2.0,
+     direction: { x: 0, y: 1, z: 0 },
+     continuous: true
+   }
+   ```
+   - Continuous particle emission
+   - Directional control
+   - Size: ~1.3KB, 46 lines
+
+4. **SparkPattern** (`sparkPattern.ts`)
+   ```typescript
+   // Example configuration
+   {
+     particleCount: 10,
+     speed: { min: 8, max: 12 },
+     spread: 180,
+     lifetime: 0.3,
+     fadeOut: true,
+     scaleOverTime: {
+       start: 1.0,
+       end: 0.0
+     }
+   }
+   ```
+   - Quick visual effects
+   - Fade and scale animations
+   - Size: ~1.2KB, 45 lines
+
+### Utility Components
+
+1. **Utils** (`utils.ts`)
+   - Math helper functions
+   - Vector operations
+   - Random number generation
+   - Performance monitoring
+   - Size: ~2.0KB, 66 lines
+
+2. **Plugin System** (`plugin.ts`)
+   - Hytopia SDK integration
+   - Plugin lifecycle management
+   - Event handling
+   - Size: ~526B, 17 lines
+
+## Implementation Details
+
+### Memory Management
+
+1. **Particle Pool**
+   ```typescript
+   // Pool initialization
+   const pool = new ParticlePool({
+     initialSize: 1000,
+     growthFactor: 1.5,
+     maxSize: 5000
+   });
+
+   // Particle acquisition
+   const particle = pool.acquire();
+   if (particle) {
+     particle.init(config);
+   }
+
+   // Particle release
+   pool.release(particle);
+   ```
+
+2. **Data Buffer Management**
+   ```typescript
+   // Buffer creation
+   const buffer = new ParticleDataBuffer(1000);
+
+   // Property updates
+   buffer.updatePosition(index, x, y, z);
+   buffer.updateVelocity(index, vx, vy, vz);
+   buffer.updateLifetime(index, time);
+   ```
+
+### Physics Integration
+
+1. **Collision System**
+   ```typescript
+   // Collision configuration
+   const physicsConfig = {
+     rigidBody: {
+       type: 'dynamic',
+       colliders: [{
+         shape: 'sphere',
+         size: { x: 1, y: 1, z: 1 },
+         material: {
+           restitution: 0.5,
+           friction: 0.3
+         }
+       }]
+     }
+   };
+   ```
+
+2. **Force Application**
+   ```typescript
+   // Apply forces
+   particle.applyForce(force);
+   particle.applyTorque(torque);
+   particle.applyImpulse(impulse, point);
+   ```
+
+### Performance Monitoring
+
+```typescript
+// Performance metrics
+interface PerformanceMetrics {
+  lastFrameTime: number;
+  frameCount: number;
+  averageFrameTime: number;
+  particleReductionFactor: number;
+  activeParticleCount: number;
+  poolSize: number;
+  fpsHistory: number[];
+  droppedFrames: number;
+}
+
+// Monitor usage
+const metrics = emitter.getPerformanceMetrics();
+if (metrics.averageFrameTime > 16.67) { // >60fps
+  emitter.enableAdaptivePerformance();
+}
+```
+
+## Build and Development
+
+### Project Structure
+```
+src/
+├── patterns/
+│   ├── basePattern.ts
+│   ├── explosionPattern.ts
+│   ├── sparkPattern.ts
+│   └── streamPattern.ts
+├── core/
+│   ├── Particle.ts
+│   ├── ParticleEmitter.ts
+│   └── ParticlePool.ts
+├── physics/
+│   ├── PhysicsController.ts
+│   └── SpatialGrid.ts
+└── utils/
+    ├── ParticleDataBuffer.ts
+    └── utils.ts
+```
+
+### Development Workflow
+
+1. **Building**
+   ```bash
+   # Development build with watch mode
+   npm run build:watch
+
+   # Production build
+   npm run build:prod
+   ```
+
+2. **Testing**
+   ```bash
+   # Run unit tests
+   npm test
+
+   # Run tests with coverage
+   npm run test:coverage
+   ```
+
+3. **Code Quality**
+   ```bash
+   # Lint code
+   npm run lint
+
+   # Fix linting issues
+   npm run lint:fix
+   ``` 
