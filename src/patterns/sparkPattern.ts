@@ -3,18 +3,20 @@ import { Pattern } from './basePattern';
 
 export class SparkPattern extends Pattern {
   name = 'spark';
-  description = 'Quick sparks or flashes at a point - perfect for impacts, hits, collisions, or any instant effect';
+  description = 'Quick spark effect for impacts';
   defaultConfig: ParticleEffectConfig = {
-    particleCount: 10,
+    particleCount: 20,
     model: "models/particle_spark.gltf",
-    usePhysics: false,
-    gravity: false,
+    physics: {
+      enabled: false
+    },
     lifetime: 0.5,
     speed: { min: 2, max: 4 },
-    direction: null,  // Will be set based on hit direction
-    spread: 60,      // Cone spread from hit point
+    direction: null,
+    spread: 180,
     size: 0.1,
-    fadeOut: true,   // Sparks fade out over lifetime
+    fadeOut: true,
+    rotationSpeed: { min: 1, max: 3 }
   };
 
   constructor() {

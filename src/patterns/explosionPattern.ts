@@ -7,8 +7,19 @@ export class ExplosionPattern extends Pattern {
   defaultConfig: ParticleEffectConfig = {
     particleCount: 50,
     model: "models/particle_rock.gltf",
-    usePhysics: true,
-    gravity: true,
+    physics: {
+      enabled: true,
+      rigidBody: {
+        type: 'dynamic',
+        useGravity: true,
+        gravityScale: 1,
+        material: {
+          restitution: 0.3,
+          friction: 0.8,
+          density: 1.0
+        }
+      }
+    },
     lifetime: 3,
     speed: { min: 5, max: 10 },
     direction: null,  // Emit in all directions
@@ -30,8 +41,19 @@ export class ExplosionPattern extends Pattern {
       }),
       debris: (config: ParticleEffectConfig, value: boolean) => ({
         ...config,
-        usePhysics: value,
-        gravity: value
+        physics: {
+          ...config.physics,
+          enabled: value,
+          rigidBody: value ? {
+            type: 'dynamic',
+            useGravity: value,
+            material: {
+              restitution: 0.3,
+              friction: 0.8,
+              density: 1.0
+            }
+          } : undefined
+        }
       })
     };
   }

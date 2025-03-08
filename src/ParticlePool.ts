@@ -1,4 +1,4 @@
-import { Entity, Vector3 } from './types';
+import { Entity, Vector3, RigidBodyOptions } from './types';
 import { SpatialGrid } from './SpatialGrid';
 
 export class ParticlePool {
@@ -10,7 +10,7 @@ export class ParticlePool {
   }
 
   getParticle(modelUri: string | undefined, size: number | undefined,
-              usePhysics: boolean, gravity: boolean, maxPoolSize: number): Entity | null {
+              rigidBodyOptions: RigidBodyOptions | undefined, maxPoolSize: number): Entity | null {
     // Find an unused particle in the pool
     for (const p of this.particles) {
       if (!p.isSpawned) {
@@ -23,10 +23,7 @@ export class ParticlePool {
       const newParticle = new Entity({
         modelUri,
         modelScale: size,
-        rigidBodyOptions: usePhysics ? {
-          type: 'dynamic',
-          useGravity: gravity
-        } : undefined
+        rigidBodyOptions
       });
       this.particles.push(newParticle);
       return newParticle;
@@ -40,7 +37,7 @@ export class ParticlePool {
     p.despawn();
   }
 
-  updateAll(deltaTime: number, usePhysics: boolean, gravity: boolean): void {
+  updateAll(deltaTime: number): void {
     for (const p of this.particles) {
       if (p.isSpawned) {
         const oldPosition = { ...p.position };
@@ -63,7 +60,7 @@ export class ParticlePool {
     return this.particles.length;
   }
 
-  // New methods for spatial queries
+  // Spatial query methods
   getNearbyParticles(position: Vector3, radius: number): Entity[] {
     return this.spatialGrid.getNearbyParticles(position, radius);
   }

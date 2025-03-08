@@ -159,8 +159,7 @@ export class ParticleEmitter {
       const particle = pool.getParticle(
         effectiveCfg.model,
         effectiveCfg.size,
-        effectiveCfg.usePhysics ?? false,
-        effectiveCfg.gravity ?? true,
+        effectiveCfg.physics?.enabled ? effectiveCfg.physics.rigidBody : undefined,
         this.maxParticles
       );
 
@@ -180,8 +179,7 @@ export class ParticleEmitter {
         position,
         velocity,
         effectiveCfg.lifetime,
-        effectiveCfg.usePhysics ?? false,
-        effectiveCfg.gravity ?? true
+        effectiveCfg.physics?.rigidBody
       );
     }
   }
@@ -196,8 +194,7 @@ export class ParticleEmitter {
 
     // Update particles with performance-adjusted deltaTime
     for (const effectName in this.pools) {
-      const cfg = this.effectConfigs[effectName];
-      this.pools[effectName].updateAll(deltaTime, cfg.usePhysics ?? false, cfg.gravity ?? true);
+      this.pools[effectName].updateAll(deltaTime);
     }
 
     // Update active particle count for metrics
