@@ -2,6 +2,7 @@ import { World, ParticleEffectConfig, ParticleConfigFile, Vector3 } from './type
 import { loadParticleConfig, validateConfig } from './ParticleConfigLoader';
 import { ParticlePool } from './ParticlePool';
 import { ParticlePatternRegistry } from './ParticlePatternsRegistry';
+import { randomRange, randomDirectionWithinCone } from './utils';
 
 export class ParticleEmitter {
   private world: World;
@@ -10,6 +11,7 @@ export class ParticleEmitter {
   private adaptivePerformance: boolean = true;
   private maxParticles: number = 500;
   private avgFps: number = 60;
+  private lastUpdateTime: number = performance.now();
 
   constructor(world: World, config?: string | ParticleConfigFile) {
     this.world = world;
@@ -107,13 +109,11 @@ export class ParticleEmitter {
     const effectiveCfg: ParticleEffectConfig = { ...cfg, ...overrides };
     let count = effectiveCfg.particleCount;
 
-    // Adjust particle count based on performance if enabled
     if (this.adaptivePerformance) {
       const fpsRatio = Math.min(this.avgFps / 60, 1);
       count = Math.floor(count * fpsRatio) || 1;
     }
 
-    // Emit particles
     for (let i = 0; i < count; i++) {
       if (this.getTotalActiveParticles() >= this.maxParticles) break;
 
@@ -128,9 +128,9 @@ export class ParticleEmitter {
 
       if (!particle) continue;
 
-      const initSpeed = this.randomRange(effectiveCfg.speed.min, effectiveCfg.speed.max);
+      const initSpeed = randomRange(effectiveCfg.speed.min, effectiveCfg.speed.max);
       const baseDir = effectiveCfg.direction || null;
-      const dir = this.randomDirectionWithinCone(baseDir, effectiveCfg.spread);
+      const dir = randomDirectionWithinCone(baseDir, effectiveCfg.spread);
       const velocity = {
         x: dir.x * initSpeed,
         y: dir.y * initSpeed,
@@ -149,7 +149,11 @@ export class ParticleEmitter {
   }
 
   update(deltaTime: number): void {
-    const currentFPS = deltaTime > 0 ? (1 / deltaTime) : 60;
+    const currentTime = performance.now();
+    const actualDeltaTime = (currentTime - this.lastUpdateTime) / 1000;
+    this.lastUpdateTime = currentTime;
+
+    const currentFPS = actualDeltaTime > 0 ? (1 / actualDeltaTime) : 60;
     this.avgFps = 0.95 * this.avgFps + 0.05 * currentFPS;
 
     for (const effectName in this.pools) {
@@ -164,72 +168,5 @@ export class ParticleEmitter {
       total += this.pools[effectName].getActiveParticleCount();
     }
     return total;
-  }
-
-  private randomRange(min: number, max: number): number {
-    return min + Math.random() * (max - min);
-  }
-
-  private randomDirectionWithinCone(baseDir: Vector3 | null, angleDeg: number): Vector3 {
-    if (!baseDir) {
-      return this.randomDirectionWithinCone({ x: 0, y: 1, z: 0 }, 180);
-    }
-
-    const b = this.normalizeVector(baseDir);
-    const angleRad = (angleDeg * Math.PI) / 180;
-
-    // For full sphere or hemisphere emission
-    if (angleDeg >= 360 || angleDeg >= 180) {
-      const u = Math.random();
-      const v = Math.random();
-      const theta = 2 * Math.PI * u;
-      const phi = Math.acos(2 * v - 1);
-      return {
-        x: Math.sin(phi) * Math.cos(theta),
-        y: Math.sin(phi) * Math.sin(theta),
-        z: Math.cos(phi),
-      };
-    }
-
-    // For cone emission
-    let uVec = this.crossProduct(b, { x: 0, y: 1, z: 0 });
-    if (this.vectorLength(uVec) < 0.001) {
-      uVec = this.crossProduct(b, { x: 1, y: 0, z: 0 });
-    }
-    uVec = this.normalizeVector(uVec);
-
-    const vVec = this.normalizeVector(this.crossProduct(b, uVec));
-    const cosTheta = Math.cos(angleRad);
-    const randCos = Math.random() * (1 - cosTheta) + cosTheta;
-    const theta = Math.acos(randCos);
-    const phi = Math.random() * 2 * Math.PI;
-    const sinTheta = Math.sin(theta);
-
-    return this.normalizeVector({
-      x: b.x * Math.cos(theta) + (uVec.x * Math.cos(phi) + vVec.x * Math.sin(phi)) * sinTheta,
-      y: b.y * Math.cos(theta) + (uVec.y * Math.cos(phi) + vVec.y * Math.sin(phi)) * sinTheta,
-      z: b.z * Math.cos(theta) + (uVec.z * Math.cos(phi) + vVec.z * Math.sin(phi)) * sinTheta,
-    });
-  }
-
-  private normalizeVector(vec: Vector3): Vector3 {
-    const len = this.vectorLength(vec);
-    return len === 0 ? { x: 0, y: 0, z: 0 } : {
-      x: vec.x / len,
-      y: vec.y / len,
-      z: vec.z / len,
-    };
-  }
-
-  private crossProduct(a: Vector3, b: Vector3): Vector3 {
-    return {
-      x: a.y * b.z - a.z * b.y,
-      y: a.z * b.x - a.x * b.z,
-      z: a.x * b.y - a.y * b.x,
-    };
-  }
-
-  private vectorLength(vec: Vector3): number {
-    return Math.sqrt(vec.x * vec.x + vec.y * vec.y + vec.z * vec.z);
   }
 }
