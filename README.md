@@ -1,43 +1,46 @@
 # Hytopia Model Particles
 
-A particle system plugin for the Hytopia SDK that provides a flexible and performant way to create particle effects in your Hytopia games.
+A powerful and flexible particle system plugin for the Hytopia SDK that brings life to your games with beautiful particle effects.
 
-## Features
+[Technical documentation available here](./TECHNICAL_README.md)
 
-- Easy-to-use particle effect system
-- Built-in patterns for common effects (explosion, stream, spark)
-- Configurable via YAML or JSON
-- Performance optimization with adaptive particle counts
-- Physics-enabled and lightweight particle modes
-- Extensible pattern system with modifiers
+## ✨ Features
 
-## Installation
+- 🎮 Easy-to-use particle effect system
+- 🎨 Built-in patterns for common effects (explosion, stream, spark)
+- ⚙️ Configure via YAML or JSON
+- 🚀 High performance with smart optimizations
+- 🎯 Physics-enabled particles with collision support
+- 🔧 Extensible pattern system
+
+## 📦 Installation
 
 ```bash
 npm install hytopia-model-particles
 ```
 
-Note: This package requires `@hytopia/sdk` as a peer dependency.
+**Requirements:**
+- Node.js 14+
+- Hytopia SDK (peer dependency)
 
-## Usage
+## 🚀 Quick Start
 
 ### Basic Usage
 
 ```typescript
 import { ParticleEmitter } from 'hytopia-model-particles';
-import type { World, Vector3 } from '@hytopia/sdk';
 
-// Initialize with default configuration
+// Initialize with your game world
 const emitter = new ParticleEmitter(world);
 
-// Emit an effect
+// Create an explosion effect
 emitter.emitEffect('explosion', { x: 0, y: 1, z: 0 });
 
-// Emit with modifiers
-emitter.emitEffect('explosion', { x: 0, y: 1, z: 0 }, {
+// Create a continuous stream
+emitter.emitEffect('stream', { x: 0, y: 0, z: 0 }, {
   patternModifiers: {
-    intensity: 2.0,  // Double the intensity
-    force: 1.5      // 50% more force
+    direction: { x: 0, y: 1, z: 0 },
+    spread: 15
   }
 });
 
@@ -47,130 +50,155 @@ function gameLoop(deltaTime: number) {
 }
 ```
 
-### Using Configuration File
+### Using Configuration Files
 
-```typescript
-// Load from YAML config
-const emitter = ParticleEmitter.fromYaml('./config/particles.yml', world);
-```
-
-Example YAML configuration:
+Create a `particles.yml` file:
 
 ```yaml
-global:
-  adaptivePerformance: true
-  maxParticles: 500
-
 effects:
-  bigExplosion:
-    pattern: explosion
-    patternModifiers:
-      intensity: 2.0
-      force: 1.5
-      debris: true
-    
-  gentleStream:
-    pattern: stream
-    patternModifiers:
-      intensity: 0.5
-      spread: 15
-      direction: { x: 0, y: 1, z: 0 }
-
-  criticalHit:
+  magicSpell:
     pattern: spark
     patternModifiers:
-      impact: 2.0
+      intensity: 1.5
       sparkle: true
+      color: { r: 0.5, g: 0.1, b: 1.0 }
+  
+  waterfall:
+    pattern: stream
+    patternModifiers:
+      direction: { x: 0, y: -1, z: 0 }
+      spread: 10
+      intensity: 0.8
 ```
 
-### Custom Patterns
-
-You can create custom particle patterns by extending the Pattern class:
+Load and use your effects:
 
 ```typescript
-import { Pattern, ParticlePatternRegistry } from 'hytopia-model-particles';
+const emitter = ParticleEmitter.fromYaml('./particles.yml', world);
+emitter.emitEffect('magicSpell', playerPosition);
+```
 
-class FountainPattern extends Pattern {
-  name = 'fountain';
-  description = 'A continuous stream of particles shooting upward';
-  defaultConfig: ParticleEffectConfig = {
-    particleCount: 5,
-    model: "models/particle_water.gltf",
-    physics: {
-      enabled: true,
-      rigidBody: {
-        type: 'dynamic',
-        useGravity: true,
-        gravityScale: 1,
-        material: {
-          restitution: 0.3,
-          friction: 0.8,
-          density: 1.0
-        }
-      }
-    },
-    lifetime: 2,
-    speed: { min: 8, max: 10 },
-    direction: { x: 0, y: 1, z: 0 },
-    spread: 15,
-    size: 0.1,
-  };
+## 🎨 Built-in Effects
 
-  constructor() {
-    super();
-    // Add fountain-specific modifiers
-    this.modifiers = {
-      ...this.modifiers,  // Includes default modifiers (intensity, scale, duration)
-      height: (config: ParticleEffectConfig, value: number) => ({
-        ...config,
-        speed: {
-          min: Math.sqrt(19.6 * value),  // Calculate speed needed to reach height
-          max: Math.sqrt(19.6 * value) * 1.2
-        }
-      })
-    };
-  }
-}
-
-// Register the pattern
-ParticlePatternRegistry.registerPattern(new FountainPattern());
-
-// Use the custom pattern
-emitter.emitEffect('fountain', position, {
+### 💥 Explosion
+Perfect for impacts, explosions, and bursts.
+```typescript
+emitter.emitEffect('explosion', position, {
   patternModifiers: {
-    height: 5,  // Fountain reaches 5 units high
-    intensity: 1.5  // 50% more particles
+    intensity: 2.0,  // More particles
+    force: 1.5,      // Faster particles
+    debris: true     // Add physics-enabled debris
   }
 });
 ```
 
-## Built-in Patterns
+### 🌊 Stream
+Ideal for continuous effects like water, fire, or magic.
+```typescript
+emitter.emitEffect('stream', position, {
+  patternModifiers: {
+    intensity: 0.5,  // Gentle flow
+    spread: 15,      // Cone spread angle
+    direction: { x: 0, y: 1, z: 0 }  // Upward direction
+  }
+});
+```
 
-### Explosion Pattern
-- Base: Spherical burst of particles with physics
-- Modifiers:
-  - `intensity`: Affects particle count and speed
-  - `force`: Multiplies particle speed
-  - `debris`: Toggles physics and gravity
+### ✨ Spark
+Great for impacts, highlights, and magical effects.
+```typescript
+emitter.emitEffect('spark', position, {
+  patternModifiers: {
+    impact: 2.0,   // Stronger effect
+    sparkle: true  // Add twinkling
+  }
+});
+```
 
-### Stream Pattern
-- Base: Continuous stream of particles in a direction
-- Modifiers:
-  - `intensity`: Affects particle count and speed
-  - `spread`: Controls cone angle (0-360)
-  - `direction`: Sets emission direction
+## 🔧 Creating Custom Effects
 
-### Spark Pattern
-- Base: Quick spark effect for impacts
-- Modifiers:
-  - `intensity`: Affects particle count and speed
-  - `impact`: Affects force and particle count
-  - `sparkle`: Adds rotation and fade effects
+1. Create your pattern class:
+```typescript
+import { Pattern, ParticlePatternRegistry } from 'hytopia-model-particles';
 
-## Contributing
+class RainPattern extends Pattern {
+  name = 'rain';
+  description = 'Creates a rainfall effect';
+  
+  defaultConfig = {
+    particleCount: 100,
+    model: "models/raindrop.gltf",
+    lifetime: { min: 1, max: 2 },
+    physics: {
+      enabled: true,
+      useGravity: true
+    }
+  };
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+  constructor() {
+    super();
+    this.modifiers = {
+      intensity: (config, value) => ({
+        ...config,
+        particleCount: Math.floor(config.particleCount * value)
+      }),
+      area: (config, value) => ({
+        ...config,
+        spawnArea: { width: value, height: value }
+      })
+    };
+  }
+}
+```
 
-## License
+2. Register and use your pattern:
+```typescript
+ParticlePatternRegistry.registerPattern(new RainPattern());
 
-MIT 
+emitter.emitEffect('rain', { x: 0, y: 10, z: 0 }, {
+  patternModifiers: {
+    intensity: 2.0,  // Heavy rain
+    area: 20        // Large area
+  }
+});
+```
+
+## 🎮 Performance Tips
+
+1. **Particle Count**: Keep particle counts reasonable
+   - Light effects: 10-50 particles
+   - Medium effects: 50-200 particles
+   - Heavy effects: 200-500 particles
+
+2. **Physics Usage**: Use physics selectively
+   ```typescript
+   emitter.emitEffect('debris', position, {
+     physics: {
+       enabled: true,      // Enable for important particles
+       lightweight: true   // Use simplified physics
+     }
+   });
+   ```
+
+3. **Effect Cleanup**: Clean up effects when done
+   ```typescript
+   // Stop emitting new particles
+   emitter.stopEffect('myEffect');
+   
+   // Clear all particles immediately
+   emitter.clear();
+   ```
+
+## 📚 Additional Resources
+
+- [Technical Documentation](./TECHNICAL_README.md)
+- [API Reference](https://hytopia.dev/docs/particles) (external)
+- [Examples Repository](https://github.com/hytopiagg/particle-examples)
+
+## 🤝 Contributing
+
+Contributions are welcome! Please check our [Contributing Guidelines](CONTRIBUTING.md).
+
+## 📄 License
+
+MIT License - feel free to use in your Hytopia games! 
