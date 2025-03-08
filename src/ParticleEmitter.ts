@@ -310,4 +310,13 @@ export class ParticleEmitter {
     }
     return stats;
   }
+
+  cleanup(): void {
+    // Cleanup all particle pools
+    for (const pool of Object.values(this.pools)) {
+      pool.dispose();
+    }
+    this.pools = {};
+    this.effectConfigs = {};
+  }
 }

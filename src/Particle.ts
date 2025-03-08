@@ -6,9 +6,12 @@ export class Particle {
   private life: number = 0;
   private velocity: Vector3 = { x: 0, y: 0, z: 0 };
 
-  constructor(modelUri?: string, size?: number, usePhysics: boolean = false, gravity: boolean = true) {
-    // Note: This constructor will need to be updated once we have access to the actual Hytopia SDK
-    this.entity = {} as Entity;
+  constructor(world: World, modelUri?: string, size?: number) {
+    // Use HYTOPIA SDK to create entity
+    this.entity = world.createEntity({
+      model: modelUri,
+      scale: size || 1
+    });
   }
 
   spawn(world: World, position: Vector3, velocity: Vector3, lifetime: number, usePhysics: boolean, gravity: boolean): void {

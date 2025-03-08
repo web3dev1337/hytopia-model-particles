@@ -1,9 +1,13 @@
+// Main exports
+export { initializeParticles } from './plugin';
 export { ParticleEmitter } from './ParticleEmitter';
 export { ParticlePatternRegistry } from './ParticlePatternsRegistry';
-export { Pattern } from './patterns/basePattern';
 export * from './types';
 
-// Re-export pattern functions for convenience
+// Pattern exports
 export { explosionPattern } from './patterns/explosionPattern';
+export { sparkPattern } from './patterns/sparkPattern';
 export { streamPattern } from './patterns/streamPattern';
-export { sparkPattern } from './patterns/sparkPattern'; 
+
+// Type exports for HYTOPIA SDK integration
+export type { ParticleEffectConfig } from './types'; 

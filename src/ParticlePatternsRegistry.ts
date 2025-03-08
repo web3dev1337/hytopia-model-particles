@@ -7,7 +7,7 @@ import { sparkPattern } from './patterns/sparkPattern';
 export class ParticlePatternRegistry {
   private static patterns: Map<string, Pattern> = new Map();
 
-  static {
+  static registerDefaultPatterns(): void {
     // Register default patterns
     this.registerPattern(explosionPattern);
     this.registerPattern(streamPattern);
