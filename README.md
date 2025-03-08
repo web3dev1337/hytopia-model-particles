@@ -144,7 +144,16 @@ class RainPattern extends Pattern {
       }),
       area: (config, value) => ({
         ...config,
-        spawnArea: { width: value, height: value }
+        physics: {
+          ...config.physics,
+          rigidBody: {
+            ...config.physics?.rigidBody,
+            colliders: [{
+              shape: "box",
+              size: { x: value, y: value, z: value }
+            }]
+          }
+        }
       })
     };
   }
