@@ -3,6 +3,17 @@ export interface SpeedConfig {
   max: number;
 }
 
+export interface PerformanceMetrics {
+  lastFrameTime: number;
+  frameCount: number;
+  averageFrameTime: number;
+  particleReductionFactor: number;
+  activeParticleCount: number;
+  poolSize: number;
+  fpsHistory: number[];
+  droppedFrames: number;
+}
+
 export interface BasePattern {
   name: string;
   description?: string;
@@ -58,7 +69,20 @@ export interface World {
 }
 
 export interface Entity {
-  // This interface will need to be updated based on the actual Hytopia SDK Entity interface
-  // For now, we'll keep it as a placeholder
-  [key: string]: any;
+  isSpawned: boolean;
+  position: Vector3;
+  rawRigidBody?: any;
+  modelScale?: number;
+  
+  spawn(
+    world: World,
+    position: Vector3,
+    velocity: Vector3,
+    lifetime: number,
+    usePhysics: boolean,
+    useGravity: boolean
+  ): void;
+  despawn(): void;
+  update(deltaTime: number): void;
+  setTintColor?(color: { r: number; g: number; b: number }): void;
 } 
