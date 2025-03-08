@@ -1,8 +1,8 @@
 import { ParticleEffectConfig } from './types';
 import { Pattern } from './patterns/basePattern';
 import { explosionPattern } from './patterns/explosionPattern';
-import { burstPattern } from './patterns/burstPattern';
-import { hitPattern } from './patterns/hitPattern';
+import { streamPattern } from './patterns/streamPattern';
+import { sparkPattern } from './patterns/sparkPattern';
 
 export class ParticlePatternRegistry {
   private static patterns: Map<string, Pattern> = new Map();
@@ -10,8 +10,8 @@ export class ParticlePatternRegistry {
   static {
     // Register default patterns
     this.registerPattern(explosionPattern);
-    this.registerPattern(burstPattern);
-    this.registerPattern(hitPattern);
+    this.registerPattern(streamPattern);
+    this.registerPattern(sparkPattern);
   }
 
   static registerPattern(pattern: Pattern): void {

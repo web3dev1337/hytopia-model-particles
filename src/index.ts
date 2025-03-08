@@ -5,5 +5,5 @@ export * from './types';
 
 // Re-export pattern functions for convenience
 export { explosionPattern } from './patterns/explosionPattern';
-export { burstPattern } from './patterns/burstPattern';
-export { hitPattern } from './patterns/hitPattern'; 
+export { streamPattern } from './patterns/streamPattern';
+export { sparkPattern } from './patterns/sparkPattern'; 

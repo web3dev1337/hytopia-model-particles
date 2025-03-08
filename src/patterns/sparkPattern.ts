@@ -1,9 +1,9 @@
 import { ParticleEffectConfig } from '../types';
 import { Pattern } from './basePattern';
 
-export class HitPattern extends Pattern {
-  name = 'hit';
-  description = 'A quick burst of particles from an impact point';
+export class SparkPattern extends Pattern {
+  name = 'spark';
+  description = 'Quick sparks or flashes at a point - perfect for impacts, hits, collisions, or any instant effect';
   defaultConfig: ParticleEffectConfig = {
     particleCount: 10,
     model: "models/particle_spark.gltf",
@@ -40,4 +40,4 @@ export class HitPattern extends Pattern {
 }
 
 // Export a singleton instance
-export const hitPattern = new HitPattern(); 
+export const sparkPattern = new SparkPattern(); 
