@@ -60,10 +60,15 @@ export class ParticleEmitter {
       // Apply pattern if specified
       if (mergedEffect.pattern) {
         const patternName = mergedEffect.pattern as string;
-        const patternFunc = ParticlePatternRegistry[patternName];
-        if (patternFunc) {
-          mergedEffect = { ...patternFunc(), ...mergedEffect };
-          delete mergedEffect.pattern;
+        try {
+          const pattern = ParticlePatternRegistry.getPattern(patternName);
+          if (pattern) {
+            mergedEffect = pattern.generate(mergedEffect);
+          } else {
+            console.warn(`Pattern "${patternName}" not found, using effect config as is.`);
+          }
+        } catch (err) {
+          console.warn(`Error applying pattern "${patternName}":`, err);
         }
       }
       merged.effects[effectName] = mergedEffect;
@@ -88,9 +93,9 @@ export class ParticleEmitter {
   private getDefaultConfig(): ParticleConfigFile {
     return {
       effects: {
-        explosion: ParticlePatternRegistry.explosion(),
-        burst: ParticlePatternRegistry.burst(),
-        hit: ParticlePatternRegistry.hit(),
+        explosion: ParticlePatternRegistry.generateConfig('explosion'),
+        burst: ParticlePatternRegistry.generateConfig('burst'),
+        hit: ParticlePatternRegistry.generateConfig('hit'),
       },
       global: {
         adaptivePerformance: true,
@@ -106,7 +111,25 @@ export class ParticleEmitter {
       return;
     }
 
-    const effectiveCfg: ParticleEffectConfig = { ...cfg, ...overrides };
+    const effectiveCfg: ParticleEffectConfig = { ...cfg };
+    
+    // If the effect has a pattern, apply pattern modifiers
+    if (overrides?.pattern || cfg.pattern) {
+      const patternName = overrides?.pattern || cfg.pattern;
+      if (patternName) {
+        const pattern = ParticlePatternRegistry.getPattern(patternName);
+        if (pattern) {
+          Object.assign(effectiveCfg, pattern.generate({
+            ...cfg,
+            ...overrides,
+          }));
+        }
+      }
+    } else {
+      // No pattern, just apply overrides directly
+      Object.assign(effectiveCfg, overrides);
+    }
+
     let count = effectiveCfg.particleCount;
 
     if (this.adaptivePerformance) {
