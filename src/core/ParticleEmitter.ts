@@ -109,9 +109,18 @@ export class ParticleEmitter {
   private getDefaultConfig(): ParticleConfigFile {
     return {
       effects: {
-        explosion: ParticlePatternRegistry.generateConfig('explosion'),
-        stream: ParticlePatternRegistry.generateConfig('stream'),
-        spark: ParticlePatternRegistry.generateConfig('spark'),
+        explosion: {
+          ...ParticlePatternRegistry.generateConfig('explosion'),
+          pattern: 'explosion'
+        },
+        stream: {
+          ...ParticlePatternRegistry.generateConfig('stream'),
+          pattern: 'stream'
+        },
+        spark: {
+          ...ParticlePatternRegistry.generateConfig('spark'),
+          pattern: 'spark'
+        }
       },
       global: {
         adaptivePerformance: true,
@@ -146,6 +155,14 @@ export class ParticleEmitter {
   }
 
   emitEffect(effectName: string, position: Vector3, overrides?: Partial<ParticleEffectConfig>): void {
+    // First try to get the pattern directly if this is a pattern name
+    const pattern = ParticlePatternRegistry.getPattern(effectName);
+    if (pattern) {
+      const config = pattern.generate(overrides);
+      this.effectConfigs[effectName] = config;
+      this.pools[effectName] = this.pools[effectName] || new ParticlePool();
+    }
+
     const cfg = this.effectConfigs[effectName];
     if (!cfg) {
       console.warn(`Effect "${effectName}" not defined.`);
