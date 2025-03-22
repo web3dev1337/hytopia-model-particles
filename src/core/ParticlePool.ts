@@ -38,7 +38,9 @@ export class ParticlePool {
       if (!particle.active) {
         particle.active = true;
         particle.model = model;
-        particle.scale = size;
+        // Make sure scale is an object for Entity interface
+        particle.scale = { x: size, y: size, z: size };
+        particle.modelScale = size;
         particle.rigidBody = rigidBody;
         return particle;
       }
@@ -51,7 +53,7 @@ export class ParticlePool {
         active: true,
         position: { x: 0, y: 0, z: 0 },
         velocity: { x: 0, y: 0, z: 0 },
-        scale: size,
+        scale: { x: size, y: size, z: size },
         modelScale: size,
         model: model,
         rigidBody: rigidBody,
@@ -61,68 +63,74 @@ export class ParticlePool {
         spawnTime: 0,
         lastUpdateTime: performance.now(),
         sleepThreshold: 0.1, // Default sleep threshold
-        cleanupDelay: 1000, // Default cleanup delay (1 second)
-        spawn(world: any, pos: Vector3, vel: Vector3, lifetime: number, physics?: any) {
-          this.active = true;
-          this.isSpawned = true;
-          this.position = { ...pos };
-          this.velocity = { ...vel };
-          this.spawnTime = performance.now();
-          this.lastUpdateTime = this.spawnTime;
-          if (physics) {
-            this.rawRigidBody = physics;
-          }
-        },
-        update(deltaTime: number) {
-          const now = performance.now();
-          if (!this.isSpawned || this.isSleeping) return;
-          
-          this.position.x += this.velocity.x * deltaTime;
-          this.position.y += this.velocity.y * deltaTime;
-          this.position.z += this.velocity.z * deltaTime;
-          
-          // Log position updates
-          console.log(`Particle ${this.id} position at ${(now - this.spawnTime).toFixed(2)}ms:`, {
+        cleanupDelay: 1000 // Default cleanup delay (1 second)
+      };
+
+      // Add methods to the particle object
+      newParticle.spawn = function(world: any, pos: Vector3, vel?: Vector3, lifetime?: number, physics?: any) {
+        this.active = true;
+        this.isSpawned = true;
+        this.position = { ...pos };
+        if (vel) this.velocity = { ...vel };
+        this.spawnTime = performance.now();
+        this.lastUpdateTime = this.spawnTime;
+        if (physics) {
+          this.rawRigidBody = physics;
+        }
+      };
+      
+      newParticle.update = function(deltaTime?: number) {
+        if (!deltaTime) return;
+        
+        const now = performance.now();
+        if (!this.isSpawned || this.isSleeping) return;
+        
+        this.position.x += this.velocity.x * deltaTime;
+        this.position.y += this.velocity.y * deltaTime;
+        this.position.z += this.velocity.z * deltaTime;
+        
+        // Log position updates occasionally
+        if (Math.random() < 0.01) {
+          console.log(`Particle ${this.id} position:`, {
             x: this.position.x.toFixed(2),
             y: this.position.y.toFixed(2),
-            z: this.position.z.toFixed(2),
-            velocity: {
-              x: this.velocity.x.toFixed(2),
-              y: this.velocity.y.toFixed(2),
-              z: this.velocity.z.toFixed(2)
-            }
+            z: this.position.z.toFixed(2)
           });
-          
-          this.lastUpdateTime = now;
-        },
-        despawn() {
-          this.active = false;
-          this.isSpawned = false;
-          this.isSleeping = false;
-          this.rawRigidBody = undefined;
-        },
-        sleep() {
-          this.isSleeping = true;
-          if (this.rawRigidBody) {
-            this.rawRigidBody.setSleeping(true);
-          }
-        },
-        wake() {
-          this.isSleeping = false;
-          if (this.rawRigidBody) {
-            this.rawRigidBody.setSleeping(false);
-          }
-        },
-        cleanup() {
-          this.despawn();
-          // Additional cleanup if needed
-        },
-        shouldCleanup() {
-          if (!this.isSpawned) return false;
-          const now = performance.now();
-          const age = now - this.spawnTime;
-          return age > (this.cleanupDelay || 1000);
         }
+        
+        this.lastUpdateTime = now;
+      };
+      
+      newParticle.despawn = function() {
+        this.active = false;
+        this.isSpawned = false;
+        this.isSleeping = false;
+        this.rawRigidBody = undefined;
+      };
+      
+      newParticle.sleep = function() {
+        this.isSleeping = true;
+        if (this.rawRigidBody && this.rawRigidBody.setSleeping) {
+          this.rawRigidBody.setSleeping(true);
+        }
+      };
+      
+      newParticle.wake = function() {
+        this.isSleeping = false;
+        if (this.rawRigidBody && this.rawRigidBody.setSleeping) {
+          this.rawRigidBody.setSleeping(false);
+        }
+      };
+      
+      newParticle.cleanup = function() {
+        this.despawn();
+      };
+      
+      newParticle.shouldCleanup = function() {
+        if (!this.isSpawned) return false;
+        const now = performance.now();
+        const age = now - this.spawnTime;
+        return age > (this.cleanupDelay || 1000);
       };
 
       this.particles.push(newParticle);

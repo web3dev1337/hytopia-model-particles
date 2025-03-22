@@ -114,16 +114,22 @@ export interface Vector3 {
     z: number;
 }
 export interface World {
+    createEntity: (options: any) => any;
+    emit?: (event: string, data: any) => void;
+    simulation?: any;
     [key: string]: any;
 }
 export interface Entity {
-    id?: string;
+    id?: string | number;
     position: Vector3;
-    velocity: Vector3;
+    velocity?: Vector3;
+    scale?: Vector3;
     modelScale?: number;
     isSpawned?: boolean;
-}
-export interface World {
+    model?: any;
+    rigidBody?: any;
+    rawRigidBody?: any;
+    [key: string]: any;
 }
 export interface CleanupStats {
     totalCleaned: number;

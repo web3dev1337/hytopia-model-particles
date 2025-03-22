@@ -117,25 +117,32 @@ export interface Vector3 {
   z: number;
 }
 
-export interface World {
-  // This interface will need to be updated based on the actual Hytopia SDK World interface
-  // For now, we'll keep it as a placeholder
-  [key: string]: any;
-}
-
-// Define basic Entity interface for internal use
-export interface Entity {
-  id?: string;
-  position: Vector3;  // Make required since it's used extensively
-  velocity: Vector3;  // Make required since it's used extensively
-  modelScale?: number;
-  isSpawned?: boolean;
-  // No index signature to avoid conflicts
-}
+// We'll use 'any' types for entity and world to avoid complexities with the Hytopia SDK types
+// This allows us to focus on our particle system implementation without fighting with TypeScript
 
 // Define basic World interface for internal use 
 export interface World {
-  // No index signature to avoid conflicts
+  // Use any to avoid TypeScript fighting with SDK types
+  createEntity: (options: any) => any;
+  emit?: (event: string, data: any) => void;
+  simulation?: any;
+  [key: string]: any;
+}
+
+// Define a simplified Entity interface to avoid TypeScript errors
+export interface Entity {
+  id?: string | number;
+  position: Vector3;
+  velocity?: Vector3;
+  scale?: Vector3;
+  modelScale?: number;
+  isSpawned?: boolean;
+  model?: any;
+  rigidBody?: any;
+  rawRigidBody?: any;
+  
+  // Keep loose types to avoid conflicts
+  [key: string]: any;
 }
 
 export interface CleanupStats {

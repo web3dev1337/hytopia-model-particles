@@ -22,6 +22,7 @@ function initializeParticles(world, debug = true) {
             return null;
         }
         // Create the emitter after patterns are registered
+        // Cast the HytopiaWorld to our internal World type to satisfy TypeScript
         emitterInstance = new ParticleEmitter_1.ParticleEmitter(world);
         console.log('ParticleEmitter initialized successfully');
         // Log available patterns for debugging
@@ -83,7 +84,7 @@ function initializeParticleServer() {
         // Initialize the pattern registry first
         ParticlePatternsRegistry_1.ParticlePatternRegistry.initialize();
         console.log('ParticlePatternRegistry initialized successfully');
-        // Create the emitter after patterns are registered
+        // Create the emitter after patterns are registered - cast to satisfy TypeScript
         const emitter = new ParticleEmitter_1.ParticleEmitter(world);
         emitterInstance = emitter;
         console.log('ParticleEmitter initialized successfully through server');

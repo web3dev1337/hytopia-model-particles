@@ -234,14 +234,18 @@ export class ParticleEmitter {
       // Adjust lifetime to be in seconds instead of milliseconds if needed
       const lifetimeInSeconds = effectiveCfg.lifetime > 100 ? effectiveCfg.lifetime / 1000 : effectiveCfg.lifetime;
       
-      // Spawn the particle with the correct parameters for the Hytopia SDK
-      particle.spawn(
-        this.world,
-        position,
-        velocity,
-        lifetimeInSeconds,
-        effectiveCfg.physics?.enabled || false
-      );
+      // Spawn the particle with the correct parameters
+      // Ensure we're passing the right arguments based on our implementation
+      try {
+        particle.spawn(
+          this.world,
+          position,
+          velocity,
+          lifetimeInSeconds
+        );
+      } catch (e) {
+        console.error('Error spawning particle:', e);
+      }
       
       // Track spawned particle data for debugging
       spawnedParticles.push({

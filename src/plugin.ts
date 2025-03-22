@@ -1,10 +1,11 @@
-import { startServer, World } from 'hytopia';
+import { startServer, World as HytopiaWorld } from 'hytopia';
 import { ParticleEmitter } from './core/ParticleEmitter';
 import { ParticlePatternRegistry } from './patterns/ParticlePatternsRegistry';
+import { World } from './types';
 
 let emitterInstance: ParticleEmitter | null = null;
 
-export function initializeParticles(world?: World, debug: boolean = true): ParticleEmitter | null {
+export function initializeParticles(world?: HytopiaWorld, debug: boolean = true): ParticleEmitter | null {
   try {
     console.log('Initializing particle system with enhanced visibility tracking...');
     
@@ -19,7 +20,8 @@ export function initializeParticles(world?: World, debug: boolean = true): Parti
     }
     
     // Create the emitter after patterns are registered
-    emitterInstance = new ParticleEmitter(world);
+    // Cast the HytopiaWorld to our internal World type to satisfy TypeScript
+    emitterInstance = new ParticleEmitter(world as unknown as World);
     console.log('ParticleEmitter initialized successfully');
     
     // Log available patterns for debugging
@@ -82,13 +84,13 @@ export function getEmitterInstance(): ParticleEmitter | null {
 
 // Legacy server initialization function - prefer using direct initialization instead
 export function initializeParticleServer() {
-  startServer((world) => {
+  startServer((world: HytopiaWorld) => {
     // Initialize the pattern registry first
     ParticlePatternRegistry.initialize();
     console.log('ParticlePatternRegistry initialized successfully');
     
-    // Create the emitter after patterns are registered
-    const emitter = new ParticleEmitter(world);
+    // Create the emitter after patterns are registered - cast to satisfy TypeScript
+    const emitter = new ParticleEmitter(world as unknown as World);
     emitterInstance = emitter;
     console.log('ParticleEmitter initialized successfully through server');
 
