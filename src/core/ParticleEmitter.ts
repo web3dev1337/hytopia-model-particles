@@ -155,9 +155,12 @@ export class ParticleEmitter {
   }
 
   emitEffect(effectName: string, position: Vector3, overrides?: Partial<ParticleEffectConfig>): void {
+    console.log(`Emitting effect "${effectName}" at position: (${position.x.toFixed(2)}, ${position.y.toFixed(2)}, ${position.z.toFixed(2)})`);
+    
     // First try to get the pattern directly if this is a pattern name
     const pattern = ParticlePatternRegistry.getPattern(effectName);
     if (pattern) {
+      console.log(`Found pattern "${effectName}" in registry`);
       const config = pattern.generate(overrides);
       this.effectConfigs[effectName] = config;
       this.pools[effectName] = this.pools[effectName] || new ParticlePool();
@@ -191,9 +194,17 @@ export class ParticleEmitter {
     let count = Math.max(1, Math.floor(
       effectiveCfg.particleCount * this.metrics.particleReductionFactor
     ));
+    
+    console.log(`Spawning ${count} particles for effect "${effectName}" with model: ${effectiveCfg.model || 'default'}`);
+
+    // Array to track spawned particles for debugging
+    const spawnedParticles = [];
 
     for (let i = 0; i < count; i++) {
-      if (this.getTotalActiveParticles() >= this.maxParticles) break;
+      if (this.getTotalActiveParticles() >= this.maxParticles) {
+        console.log(`Reached max particles limit (${this.maxParticles}), stopping emission`);
+        break;
+      }
 
       const pool = this.pools[effectName];
       const particle = pool.getParticle(
@@ -203,10 +214,13 @@ export class ParticleEmitter {
         this.maxParticles
       );
 
-      if (!particle) continue;
+      if (!particle) {
+        console.warn(`Failed to get particle from pool for effect "${effectName}"`);
+        continue;
+      }
 
       const initSpeed = randomRange(effectiveCfg.speed.min, effectiveCfg.speed.max);
-      const baseDir = effectiveCfg.direction || null;
+      const baseDir = effectiveCfg.direction || { x: 0, y: 1, z: 0 }; // Default upward if null
       const dir = randomDirectionWithinCone(baseDir, effectiveCfg.spread);
       const velocity = {
         x: dir.x * initSpeed,
@@ -214,13 +228,35 @@ export class ParticleEmitter {
         z: dir.z * initSpeed,
       };
 
+      // Use gravity setting from config if available
+      const useGravity = effectiveCfg.physics?.rigidBody?.useGravity || false;
+
+      // Adjust lifetime to be in seconds instead of milliseconds if needed
+      const lifetimeInSeconds = effectiveCfg.lifetime > 100 ? effectiveCfg.lifetime / 1000 : effectiveCfg.lifetime;
+      
+      // Spawn the particle with the correct parameters for the Hytopia SDK
       particle.spawn(
         this.world,
         position,
         velocity,
-        effectiveCfg.lifetime,
-        effectiveCfg.physics?.rigidBody
+        lifetimeInSeconds,
+        effectiveCfg.physics?.enabled || false
       );
+      
+      // Track spawned particle data for debugging
+      spawnedParticles.push({
+        position: { ...position },
+        velocity: { ...velocity },
+        lifetime: effectiveCfg.lifetime,
+        model: effectiveCfg.model || 'default-model'
+      });
+    }
+
+    // Log detailed information about the first few particles
+    if (spawnedParticles.length > 0) {
+      console.log(`Successfully spawned ${spawnedParticles.length} particles for effect "${effectName}"`);
+      console.log(`First particle details: `, 
+        JSON.stringify(spawnedParticles[0], null, 2).substring(0, 200) + '...');
     }
   }
 

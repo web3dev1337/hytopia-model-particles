@@ -145,6 +145,12 @@ export class ParticlePool {
     // Update lifecycle manager with current state
     this.lifecycleManager.update(this.particles, this.cameraPosition, deltaTime);
 
+    // Log active particle count for monitoring
+    const activeCount = this.getActiveParticleCount();
+    if (activeCount > 0) {
+      console.log(`Updating ${activeCount} active particles with deltaTime ${deltaTime.toFixed(3)}s`);
+    }
+
     // Prepare batch updates
     const updates: Array<{
       index: number;
@@ -175,12 +181,26 @@ export class ParticlePool {
             oldPosition.z !== p.position.z) {
           this.spatialGrid.updateParticlePosition(p, oldPosition);
         }
+        
+        // Occasionally log detailed particle state (1% of particles)
+        if (Math.random() < 0.01) {
+          console.log(`Particle ${p.id} state:`, {
+            position: p.position,
+            velocity: p.velocity,
+            active: p.active,
+            isSpawned: p.isSpawned,
+            isSleeping: p.isSleeping,
+            model: p.model,
+            age: performance.now() - p.spawnTime
+          });
+        }
       }
     }
 
     // Apply batch updates
     if (updates.length > 0) {
       this.dataBuffer.updateParticles(updates);
+      console.log(`Applied batch updates to ${updates.length} particles`);
     }
   }
 

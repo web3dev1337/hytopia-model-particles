@@ -106,4 +106,12 @@ export class ParticlePatternRegistry {
       description: pattern.description
     }));
   }
+  
+  static getPatternNames(): string[] {
+    if (!this.initialized) {
+      throw new Error('ParticlePatternRegistry must be initialized before getting pattern names. Call ParticlePatternRegistry.initialize() first.');
+    }
+    
+    return Array.from(this.patterns.keys());
+  }
 } 

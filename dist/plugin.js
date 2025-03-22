@@ -1,18 +1,80 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.ParticlePatternRegistry = exports.ParticleEmitter = void 0;
 exports.initializeParticles = initializeParticles;
+exports.getEmitterInstance = getEmitterInstance;
+exports.initializeParticleServer = initializeParticleServer;
 const hytopia_1 = require("hytopia");
 const ParticleEmitter_1 = require("./core/ParticleEmitter");
+Object.defineProperty(exports, "ParticleEmitter", { enumerable: true, get: function () { return ParticleEmitter_1.ParticleEmitter; } });
 const ParticlePatternsRegistry_1 = require("./patterns/ParticlePatternsRegistry");
-function initializeParticles() {
+Object.defineProperty(exports, "ParticlePatternRegistry", { enumerable: true, get: function () { return ParticlePatternsRegistry_1.ParticlePatternRegistry; } });
+let emitterInstance = null;
+function initializeParticles(world, debug = false) {
+    try {
+        console.log('Initializing particle system with enhanced tracking...');
+        // Initialize the pattern registry first
+        ParticlePatternsRegistry_1.ParticlePatternRegistry.initialize();
+        console.log('ParticlePatternRegistry initialized successfully');
+        // Check if we have a world instance
+        if (!world) {
+            console.error('No world instance provided to initializeParticles');
+            return null;
+        }
+        // Create the emitter after patterns are registered
+        emitterInstance = new ParticleEmitter_1.ParticleEmitter(world);
+        console.log('ParticleEmitter initialized successfully');
+        // Log available patterns for debugging
+        const patterns = ParticlePatternsRegistry_1.ParticlePatternRegistry.getPatternNames();
+        console.log(`Available particle patterns (${patterns.length}): ${patterns.join(', ')}`);
+        if (debug) {
+            // Setup a simple particle test after a short delay
+            setTimeout(() => {
+                try {
+                    if (emitterInstance) {
+                        console.log('Running particle system test...');
+                        // Test an explosion at origin
+                        emitterInstance.emitEffect('explosion', { x: 0, y: 5, z: 0 });
+                        console.log('Test explosion emitted at (0, 5, 0)');
+                    }
+                }
+                catch (e) {
+                    console.error('Error running particle test:', e);
+                }
+            }, 2000);
+        }
+        return emitterInstance;
+    }
+    catch (e) {
+        console.error('Error initializing particle system:', e);
+        return null;
+    }
+}
+function getEmitterInstance() {
+    return emitterInstance;
+}
+// Legacy server initialization function - prefer using direct initialization instead
+function initializeParticleServer() {
     (0, hytopia_1.startServer)((world) => {
         // Initialize the pattern registry first
         ParticlePatternsRegistry_1.ParticlePatternRegistry.initialize();
+        console.log('ParticlePatternRegistry initialized successfully');
         // Create the emitter after patterns are registered
         const emitter = new ParticleEmitter_1.ParticleEmitter(world);
+        emitterInstance = emitter;
+        console.log('ParticleEmitter initialized successfully through server');
         return {
-            update: (deltaTime) => emitter.update(deltaTime),
-            cleanup: () => emitter.cleanup()
+            update: (deltaTime) => {
+                if (emitter) {
+                    emitter.update(deltaTime);
+                }
+            },
+            cleanup: () => {
+                if (emitter) {
+                    emitter.cleanup();
+                    emitterInstance = null;
+                }
+            }
         };
     });
 }
