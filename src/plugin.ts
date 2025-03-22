@@ -4,10 +4,11 @@ import { ParticlePatternRegistry } from './patterns/ParticlePatternsRegistry';
 
 export function initializeParticles() {
   startServer((world) => {
-    const emitter = new ParticleEmitter(world);
+    // Initialize the pattern registry first
+    ParticlePatternRegistry.initialize();
     
-    // Register default patterns
-    ParticlePatternRegistry.registerDefaultPatterns();
+    // Create the emitter after patterns are registered
+    const emitter = new ParticleEmitter(world);
 
     return {
       update: (deltaTime: number) => emitter.update(deltaTime),
