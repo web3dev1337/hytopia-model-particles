@@ -81,6 +81,18 @@ export class ParticlePool {
           this.position.y += this.velocity.y * deltaTime;
           this.position.z += this.velocity.z * deltaTime;
           
+          // Log position updates
+          console.log(`Particle ${this.id} position at ${(now - this.spawnTime).toFixed(2)}ms:`, {
+            x: this.position.x.toFixed(2),
+            y: this.position.y.toFixed(2),
+            z: this.position.z.toFixed(2),
+            velocity: {
+              x: this.velocity.x.toFixed(2),
+              y: this.velocity.y.toFixed(2),
+              z: this.velocity.z.toFixed(2)
+            }
+          });
+          
           this.lastUpdateTime = now;
         },
         despawn() {
