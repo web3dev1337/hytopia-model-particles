@@ -234,6 +234,38 @@ global:
       max: { x: 1000, y: 1000, z: 1000 }
 ```
 
+## 🛠️ Recent Changes and Fixes
+
+### Entity Visibility Fix (v1.0.6)
+
+This update fixes issues where particles were being spawned but not properly displayed in the game world:
+
+1. **Proper Entity Spawning**: Fixed the `Particle.spawn()` method to correctly spawn entities in the world
+2. **Position Updates**: Improved position updating in the `Particle.update()` method
+3. **Despawning Cleanup**: Enhanced despawn logic to properly remove particles from the world
+4. **Plugin Integration**: Improved plugin initialization and instance management
+5. **API Exports**: Added helpful utility exports to make integration easier
+
+To update your existing code:
+
+```typescript
+// New way to initialize the plugin
+import { initializeParticles, getEmitterInstance } from 'hytopia-model-particles';
+
+// Initialize in your game startup
+const emitter = initializeParticles(world);
+
+// Or access the emitter instance later
+const emitter = getEmitterInstance();
+
+// Make sure to update in your game loop
+function gameLoop(deltaTime: number) {
+  // Convert to seconds if your deltaTime is in milliseconds
+  const deltaTimeSeconds = deltaTime / 1000;
+  emitter.update(deltaTimeSeconds);
+}
+```
+
 ### Effect Configuration
 
 Each effect can be configured with these parameters:
