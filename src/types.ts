@@ -123,44 +123,19 @@ export interface World {
   [key: string]: any;
 }
 
+// Define basic Entity interface for internal use
 export interface Entity {
-  id: string;
-  active: boolean;
-  position: Vector3;
-  velocity: Vector3;
-  scale: number;
-  model?: string;
-  rigidBody?: RigidBodyOptions;
-  rawRigidBody?: {
-    addForce(force: Vector3): void;
-    addTorque(torque: Vector3): void;
-    applyImpulse(impulse: Vector3): void;
-    applyImpulseAtPoint(impulse: Vector3, point: Vector3): void;
-    setLinearVelocity(velocity: Vector3): void;
-    getLinearVelocity(): Vector3;
-    setAngularVelocity(velocity: Vector3): void;
-    getAngularVelocity(): Vector3;
-    setLinearDamping(damping: number): void;
-    setAngularDamping(damping: number): void;
-    setFixedRotation(fixed: boolean): void;
-    getMass(): number;
-    setSleeping(sleeping: boolean): void;
-    isSleeping(): boolean;
-  };
-  modelScale: number;
-  isSpawned: boolean;
-  isSleeping: boolean;
-  spawnTime: number;
-  lastUpdateTime: number;
-  sleepThreshold?: number;
-  cleanupDelay?: number;
-  spawn: (world: any, pos: Vector3, vel: Vector3, lifetime: number, physics?: any) => void;
-  update: (deltaTime: number) => void;
-  despawn: () => void;
-  sleep?: () => void;
-  wake?: () => void;
-  cleanup?: () => void;
-  shouldCleanup?: () => boolean;
+  id?: string;
+  position: Vector3;  // Make required since it's used extensively
+  velocity: Vector3;  // Make required since it's used extensively
+  modelScale?: number;
+  isSpawned?: boolean;
+  // No index signature to avoid conflicts
+}
+
+// Define basic World interface for internal use 
+export interface World {
+  // No index signature to avoid conflicts
 }
 
 export interface CleanupStats {

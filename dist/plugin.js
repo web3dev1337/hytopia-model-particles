@@ -10,9 +10,9 @@ Object.defineProperty(exports, "ParticleEmitter", { enumerable: true, get: funct
 const ParticlePatternsRegistry_1 = require("./patterns/ParticlePatternsRegistry");
 Object.defineProperty(exports, "ParticlePatternRegistry", { enumerable: true, get: function () { return ParticlePatternsRegistry_1.ParticlePatternRegistry; } });
 let emitterInstance = null;
-function initializeParticles(world, debug = false) {
+function initializeParticles(world, debug = true) {
     try {
-        console.log('Initializing particle system with enhanced tracking...');
+        console.log('Initializing particle system with enhanced visibility tracking...');
         // Initialize the pattern registry first
         ParticlePatternsRegistry_1.ParticlePatternRegistry.initialize();
         console.log('ParticlePatternRegistry initialized successfully');
@@ -27,15 +27,39 @@ function initializeParticles(world, debug = false) {
         // Log available patterns for debugging
         const patterns = ParticlePatternsRegistry_1.ParticlePatternRegistry.getPatternNames();
         console.log(`Available particle patterns (${patterns.length}): ${patterns.join(', ')}`);
+        // Always setup update interval to ensure particle system is properly updated
+        const updateIntervalId = setInterval(() => {
+            if (emitterInstance) {
+                emitterInstance.update(1 / 60); // Update with roughly 60fps timing
+            }
+            else {
+                // If emitter is gone, clear the interval
+                clearInterval(updateIntervalId);
+            }
+        }, 1000 / 60); // 60 times per second
         if (debug) {
             // Setup a simple particle test after a short delay
             setTimeout(() => {
                 try {
                     if (emitterInstance) {
                         console.log('Running particle system test...');
-                        // Test an explosion at origin
-                        emitterInstance.emitEffect('explosion', { x: 0, y: 5, z: 0 });
-                        console.log('Test explosion emitted at (0, 5, 0)');
+                        // Test at center of the world (likely origin) at eye height
+                        emitterInstance.emitEffect('explosion', { x: 0, y: 2, z: 0 });
+                        console.log('Test explosion emitted at (0, 2, 0)');
+                        // Test a second pattern for more visibility
+                        setTimeout(() => {
+                            if (emitterInstance) {
+                                emitterInstance.emitEffect('stream', { x: 0, y: 2, z: 0 });
+                                console.log('Test stream emitted at (0, 2, 0)');
+                            }
+                        }, 2000);
+                        // Test a third pattern for comprehensive testing
+                        setTimeout(() => {
+                            if (emitterInstance) {
+                                emitterInstance.emitEffect('spark', { x: 0, y: 2, z: 0 });
+                                console.log('Test spark emitted at (0, 2, 0)');
+                            }
+                        }, 4000);
                     }
                 }
                 catch (e) {
