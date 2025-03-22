@@ -14,18 +14,27 @@ export class ParticlePatternRegistry {
       return;
     }
     
+    console.log('Initializing ParticlePatternRegistry...');
+    
     // Set initialized to true first
     this.initialized = true;
     
-    // Then register patterns
-    this.registerDefaultPatterns();
-  }
-
-  private static registerDefaultPatterns(): void {
-    // Register default patterns
+    // Then register patterns with debug info
+    console.log('Registering explosion pattern:', explosionPattern.name);
     this.registerPattern(explosionPattern);
+    
+    console.log('Registering stream pattern:', streamPattern.name);
     this.registerPattern(streamPattern);
+    
+    console.log('Registering spark pattern:', sparkPattern.name);
     this.registerPattern(sparkPattern);
+
+    // Log registered patterns
+    const patterns = this.listPatterns();
+    console.log('Successfully registered patterns:');
+    patterns.forEach(p => {
+      console.log(`- "${p.name}": ${p.description || 'No description'}`);
+    });
   }
 
   static registerPattern(pattern: Pattern): void {
@@ -33,17 +42,40 @@ export class ParticlePatternRegistry {
       throw new Error('ParticlePatternRegistry must be initialized before registering patterns. Call ParticlePatternRegistry.initialize() first.');
     }
 
+    if (!pattern) {
+      throw new Error('Cannot register null or undefined pattern');
+    }
+
+    if (!pattern.name) {
+      throw new Error('Pattern must have a name');
+    }
+
+    console.log(`Registering pattern "${pattern.name}"...`);
+    
     if (this.patterns.has(pattern.name)) {
       console.warn(`Pattern "${pattern.name}" already exists and will be overwritten.`);
     }
+    
     this.patterns.set(pattern.name, pattern);
+    console.log(`Successfully registered pattern "${pattern.name}"`);
   }
 
   static getPattern(name: string): Pattern | undefined {
     if (!this.initialized) {
       throw new Error('ParticlePatternRegistry must be initialized before getting patterns. Call ParticlePatternRegistry.initialize() first.');
     }
-    return this.patterns.get(name);
+
+    console.log(`Looking for pattern "${name}"...`);
+    console.log('Available patterns:', Array.from(this.patterns.keys()));
+    
+    const pattern = this.patterns.get(name);
+    if (!pattern) {
+      const availablePatterns = Array.from(this.patterns.keys()).join('", "');
+      console.warn(`Pattern "${name}" not found. Available patterns: "${availablePatterns}"`);
+    } else {
+      console.log(`Found pattern "${name}"`);
+    }
+    return pattern;
   }
 
   static generateConfig(patternName: string, overrides?: Partial<ParticleEffectConfig>): ParticleEffectConfig {
@@ -51,11 +83,17 @@ export class ParticlePatternRegistry {
       throw new Error('ParticlePatternRegistry must be initialized before generating configs. Call ParticlePatternRegistry.initialize() first.');
     }
 
+    console.log(`Generating config for pattern "${patternName}"...`);
+    
     const pattern = this.getPattern(patternName);
     if (!pattern) {
-      throw new Error(`Pattern "${patternName}" not found.`);
+      const availablePatterns = Array.from(this.patterns.keys()).join('", "');
+      throw new Error(`Pattern "${patternName}" not found. Available patterns: "${availablePatterns}"`);
     }
-    return pattern.generate(overrides);
+    
+    const config = pattern.generate(overrides);
+    console.log(`Generated config for "${patternName}":`, config);
+    return config;
   }
 
   static listPatterns(): { name: string; description?: string }[] {
