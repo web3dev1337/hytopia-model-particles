@@ -197,7 +197,7 @@ export class ParticleEmitter {
 
       const pool = this.pools[effectName];
       const particle = pool.getParticle(
-        effectiveCfg.model,
+        effectiveCfg.model || 'models/default-particle.gltf',
         effectiveCfg.size,
         effectiveCfg.physics?.enabled ? effectiveCfg.physics.rigidBody : undefined,
         this.maxParticles

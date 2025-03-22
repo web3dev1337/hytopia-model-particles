@@ -9,6 +9,7 @@ export class ParticlePool {
   private spatialGrid: SpatialGrid;
   private lifecycleManager: ParticleLifecycleManager;
   private cameraPosition: Vector3 = { x: 0, y: 0, z: 0 };
+  private nextParticleId = 0;
 
   // Flags for particle state
   private static readonly FLAG_SPAWNED = 1;
@@ -31,37 +32,88 @@ export class ParticlePool {
     });
   }
 
-  getParticle(modelUri: string | undefined, size: number | undefined,
-              rigidBodyOptions: RigidBodyOptions | undefined, maxPoolSize: number): Entity | null {
-    // Clean up any particles that should be removed
-    this.cleanupInactiveParticles();
-
-    // Find an unused particle in the pool
-    for (let i = 0; i < this.particles.length; i++) {
-      const flags = this.dataBuffer.getFlags(i);
-      if (!(flags & ParticlePool.FLAG_SPAWNED)) {
-        const particle = this.particles[i];
-        // Initialize particle data
-        this.dataBuffer.setScale(i, size || 1);
-        this.dataBuffer.setFlags(i, ParticlePool.FLAG_SPAWNED);
+  getParticle(model: string, size: number, rigidBody?: RigidBodyOptions, maxPoolSize: number = 1000): Entity | null {
+    // Try to find an inactive particle first
+    for (const particle of this.particles) {
+      if (!particle.active) {
+        particle.active = true;
+        particle.model = model;
+        particle.scale = size;
+        particle.rigidBody = rigidBody;
         return particle;
       }
     }
 
     // No free particle found, create a new one if we haven't hit maxPoolSize
     if (this.particles.length < maxPoolSize) {
-      const index = this.particles.length;
-      // @ts-ignore - Using placeholder Entity creation for now
-      const newParticle = new Entity({
-        modelUri,
+      const newParticle: Entity = {
+        id: `particle-${this.nextParticleId++}`,
+        active: true,
+        position: { x: 0, y: 0, z: 0 },
+        velocity: { x: 0, y: 0, z: 0 },
+        scale: size,
         modelScale: size,
-        rigidBodyOptions,
-        index // Store the buffer index in the entity
-      });
-      
+        model: model,
+        rigidBody: rigidBody,
+        rawRigidBody: undefined,
+        isSpawned: false,
+        isSleeping: false,
+        spawnTime: 0,
+        lastUpdateTime: performance.now(),
+        sleepThreshold: 0.1, // Default sleep threshold
+        cleanupDelay: 1000, // Default cleanup delay (1 second)
+        spawn(world: any, pos: Vector3, vel: Vector3, lifetime: number, physics?: any) {
+          this.active = true;
+          this.isSpawned = true;
+          this.position = { ...pos };
+          this.velocity = { ...vel };
+          this.spawnTime = performance.now();
+          this.lastUpdateTime = this.spawnTime;
+          if (physics) {
+            this.rawRigidBody = physics;
+          }
+        },
+        update(deltaTime: number) {
+          const now = performance.now();
+          if (!this.isSpawned || this.isSleeping) return;
+          
+          this.position.x += this.velocity.x * deltaTime;
+          this.position.y += this.velocity.y * deltaTime;
+          this.position.z += this.velocity.z * deltaTime;
+          
+          this.lastUpdateTime = now;
+        },
+        despawn() {
+          this.active = false;
+          this.isSpawned = false;
+          this.isSleeping = false;
+          this.rawRigidBody = undefined;
+        },
+        sleep() {
+          this.isSleeping = true;
+          if (this.rawRigidBody) {
+            this.rawRigidBody.setSleeping(true);
+          }
+        },
+        wake() {
+          this.isSleeping = false;
+          if (this.rawRigidBody) {
+            this.rawRigidBody.setSleeping(false);
+          }
+        },
+        cleanup() {
+          this.despawn();
+          // Additional cleanup if needed
+        },
+        shouldCleanup() {
+          if (!this.isSpawned) return false;
+          const now = performance.now();
+          const age = now - this.spawnTime;
+          return age > (this.cleanupDelay || 1000);
+        }
+      };
+
       this.particles.push(newParticle);
-      this.dataBuffer.setScale(index, size || 1);
-      this.dataBuffer.setFlags(index, ParticlePool.FLAG_SPAWNED);
       return newParticle;
     }
 
@@ -143,7 +195,7 @@ export class ParticlePool {
   }
 
   getActiveParticleCount(): number {
-    return this.particles.filter(p => p.isSpawned && !p.isSleeping).length;
+    return this.particles.filter(p => p.active).length;
   }
 
   getTotalParticleCount(): number {
@@ -151,7 +203,7 @@ export class ParticlePool {
   }
 
   getSleepingParticleCount(): number {
-    return this.particles.filter(p => p.isSpawned && p.isSleeping).length;
+    return this.particles.filter(p => p.active && p.isSleeping).length;
   }
 
   getCleanupStats(): CleanupStats {

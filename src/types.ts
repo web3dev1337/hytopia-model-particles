@@ -124,10 +124,13 @@ export interface World {
 }
 
 export interface Entity {
-  isSpawned: boolean;
-  isSleeping?: boolean;
+  id: string;
+  active: boolean;
   position: Vector3;
   velocity: Vector3;
+  scale: number;
+  model?: string;
+  rigidBody?: RigidBodyOptions;
   rawRigidBody?: {
     addForce(force: Vector3): void;
     addTorque(torque: Vector3): void;
@@ -145,25 +148,19 @@ export interface Entity {
     isSleeping(): boolean;
   };
   modelScale: number;
+  isSpawned: boolean;
+  isSleeping: boolean;
   spawnTime: number;
   lastUpdateTime: number;
-  sleepThreshold?: number;  // Velocity threshold for auto-sleep
-  cleanupDelay?: number;   // Time to wait after despawn before cleanup
-  
-  spawn(
-    world: World,
-    position: Vector3,
-    velocity: Vector3,
-    lifetime: number,
-    rigidBodyOptions?: RigidBodyOptions
-  ): void;
-  despawn(): void;
-  update(deltaTime: number): void;
-  setTintColor?(color: { r: number; g: number; b: number }): void;
-  sleep?(): void;
-  wake?(): void;
-  cleanup?(): void;
-  shouldCleanup?(): boolean;
+  sleepThreshold?: number;
+  cleanupDelay?: number;
+  spawn: (world: any, pos: Vector3, vel: Vector3, lifetime: number, physics?: any) => void;
+  update: (deltaTime: number) => void;
+  despawn: () => void;
+  sleep?: () => void;
+  wake?: () => void;
+  cleanup?: () => void;
+  shouldCleanup?: () => boolean;
 }
 
 export interface CleanupStats {
