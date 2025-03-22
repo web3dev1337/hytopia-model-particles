@@ -13,11 +13,15 @@ export class ParticlePatternRegistry {
       console.warn('ParticlePatternRegistry is already initialized.');
       return;
     }
-    this.registerDefaultPatterns();
+    
+    // Set initialized to true first
     this.initialized = true;
+    
+    // Then register patterns
+    this.registerDefaultPatterns();
   }
 
-  static registerDefaultPatterns(): void {
+  private static registerDefaultPatterns(): void {
     // Register default patterns
     this.registerPattern(explosionPattern);
     this.registerPattern(streamPattern);
