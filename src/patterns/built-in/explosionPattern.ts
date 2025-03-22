@@ -6,7 +6,7 @@ export class ExplosionPattern extends Pattern {
   description = 'A spherical burst of particles with physics and gravity';
   defaultConfig: ParticleEffectConfig = {
     particleCount: 50,
-    model: "models/particle_rock.gltf",
+    model: "models/projectiles/fireball.gltf",
     physics: {
       enabled: true,
       rigidBody: {

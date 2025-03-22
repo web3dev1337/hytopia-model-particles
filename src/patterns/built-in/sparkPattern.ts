@@ -6,7 +6,7 @@ export class SparkPattern extends Pattern {
   description = 'Quick spark effect for impacts';
   defaultConfig: ParticleEffectConfig = {
     particleCount: 20,
-    model: "models/particle_spark.gltf",
+    model: "models/projectiles/energy-orb-projectile.gltf",
     physics: {
       enabled: false
     },

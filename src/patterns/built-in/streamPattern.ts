@@ -6,7 +6,7 @@ export class StreamPattern extends Pattern {
   description = 'Continuous stream of particles in a direction';
   defaultConfig: ParticleEffectConfig = {
     particleCount: 5,
-    model: "models/particle_drop.gltf",
+    model: "models/projectiles/laser-bullet-green-small.gltf",
     physics: {
       enabled: false
     },
