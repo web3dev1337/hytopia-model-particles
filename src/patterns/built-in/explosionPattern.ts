@@ -20,11 +20,11 @@ export class ExplosionPattern extends Pattern {
         }
       }
     },
-    lifetime: 3,
-    speed: { min: 5, max: 10 },
+    lifetime: 30,
+    speed: { min: 1, max: 2 },
     direction: null,  // Emit in all directions
     spread: 360,     // Full sphere emission
-    size: 0.2,
+    size: 20.0,
   };
 
   constructor() {
