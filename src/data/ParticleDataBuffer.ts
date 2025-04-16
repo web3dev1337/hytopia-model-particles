@@ -171,7 +171,6 @@ export class ParticleDataBuffer {
 
   // Get a typed view of specific attributes for all particles
   getAttributeView(attribute: 'position' | 'velocity'): Float32Array {
-    const _stride = ParticleDataBuffer.FLOATS_PER_PARTICLE;
     const offset = attribute === 'position' ? 0 : 3;
     const length = this.capacity * 3;
     
