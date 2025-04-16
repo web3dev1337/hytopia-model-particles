@@ -3,7 +3,7 @@ import { PhysicsConfig, Vector3, Entity } from '../types';
 export class PhysicsController {
   private config: PhysicsConfig;
   private entity: Entity;
-  private time: number = 0;
+  private time = 0;
 
   constructor(entity: Entity, config: PhysicsConfig) {
     this.entity = entity;

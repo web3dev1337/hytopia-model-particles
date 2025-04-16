@@ -6,7 +6,7 @@ import { sparkPattern } from './built-in/sparkPattern';
 
 export class ParticlePatternRegistry {
   private static patterns: Map<string, Pattern> = new Map();
-  private static initialized: boolean = false;
+  private static initialized = false;
 
   static initialize(): void {
     if (this.initialized) {

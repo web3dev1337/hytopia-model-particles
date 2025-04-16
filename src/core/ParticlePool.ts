@@ -32,7 +32,7 @@ export class ParticlePool {
     });
   }
 
-  getParticle(model: string, size: number, rigidBody?: RigidBodyOptions, maxPoolSize: number = 1000): Entity | null {
+  getParticle(model: string, size: number, rigidBody?: RigidBodyOptions, maxPoolSize = 1000): Entity | null {
     // Try to find an inactive particle first
     for (const particle of this.particles) {
       if (!particle.active) {

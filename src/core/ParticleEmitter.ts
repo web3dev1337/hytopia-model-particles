@@ -15,9 +15,9 @@ export class ParticleEmitter {
   private effectConfigs: { [name: string]: ParticleEffectConfig } = {};
   private pools: { [name: string]: ParticlePool } = {};
   private effectQueue: ParticleEffectQueue;
-  private adaptivePerformance: boolean = true;
-  private maxParticles: number = 500;
-  private avgFps: number = 60;
+  private adaptivePerformance = true;
+  private maxParticles = 500;
+  private avgFps = 60;
   private lastUpdateTime: number = performance.now();
 
   // Performance monitoring
@@ -188,7 +188,7 @@ export class ParticleEmitter {
     }
 
     // Apply performance-based particle reduction
-    let count = Math.max(1, Math.floor(
+    const count = Math.max(1, Math.floor(
       effectiveCfg.particleCount * this.metrics.particleReductionFactor
     ));
 

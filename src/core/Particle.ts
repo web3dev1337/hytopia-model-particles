@@ -2,8 +2,8 @@ import { Entity, Vector3, World } from '../types';
 
 export class Particle {
   private entity: Entity;
-  private inUse: boolean = false;
-  private life: number = 0;
+  private inUse = false;
+  private life = 0;
   private velocity: Vector3 = { x: 0, y: 0, z: 0 };
 
   constructor(world: World, modelUri?: string, size?: number) {
