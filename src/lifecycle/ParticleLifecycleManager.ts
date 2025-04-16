@@ -38,7 +38,7 @@ export class ParticleLifecycleManager {
     this.defaultCleanupDelay = options.defaultCleanupDelay || 5000;
   }
 
-  update(particles: Entity[], cameraPosition: Vector3, deltaTime: number): void {
+  update(particles: Entity[], cameraPosition: Vector3, _deltaTime: number): void {
     const currentTime = performance.now();
 
     // Check if it's time for cleanup

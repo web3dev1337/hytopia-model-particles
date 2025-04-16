@@ -245,7 +245,7 @@ export class ParticleEmitter {
     this.metrics.poolSize = Object.values(this.pools).reduce((total, pool) => total + pool.getTotalParticleCount(), 0);
   }
 
-  private updatePerformanceMetrics(currentTime: number, deltaTime: number): void {
+  private updatePerformanceMetrics(currentTime: number, _deltaTime: number): void {
     const frameTime = currentTime - this.metrics.lastFrameTime;
     this.metrics.frameCount++;
 

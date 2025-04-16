@@ -76,7 +76,7 @@ export class ParticleDataBuffer {
   }
 
   // Efficient batch updates
-  updatePositions(positions: Float32Array, startIndex: number, count: number): void {
+  updatePositions(positions: Float32Array, startIndex: number, _count: number): void {
     const targetStart = startIndex * ParticleDataBuffer.FLOATS_PER_PARTICLE;
     this.buffer.set(positions, targetStart);
   }
@@ -171,7 +171,7 @@ export class ParticleDataBuffer {
 
   // Get a typed view of specific attributes for all particles
   getAttributeView(attribute: 'position' | 'velocity'): Float32Array {
-    const stride = ParticleDataBuffer.FLOATS_PER_PARTICLE;
+    const _stride = ParticleDataBuffer.FLOATS_PER_PARTICLE;
     const offset = attribute === 'position' ? 0 : 3;
     const length = this.capacity * 3;
     

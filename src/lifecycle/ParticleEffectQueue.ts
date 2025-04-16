@@ -128,7 +128,7 @@ export class ParticleEffectQueue {
   private generateBatchKey(
     effectName: string,
     position: Vector3,
-    overrides?: Partial<ParticleEffectConfig>
+    _overrides?: Partial<ParticleEffectConfig>
   ): string {
     // Group effects by name and rough position (rounded to nearest unit)
     const x = Math.round(position.x);

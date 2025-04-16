@@ -14,7 +14,7 @@ export class Particle {
     });
   }
 
-  spawn(world: World, position: Vector3, velocity: Vector3, lifetime: number, usePhysics: boolean, gravity: boolean): void {
+  spawn(world: World, position: Vector3, velocity: Vector3, lifetime: number, _usePhysics: boolean, _gravity: boolean): void {
     this.inUse = true;
     this.life = lifetime;
     this.velocity = { ...velocity };
