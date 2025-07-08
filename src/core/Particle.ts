@@ -1,7 +1,7 @@
 import { Entity, World, RigidBodyType, ColliderShape, CollisionGroup } from 'hytopia';
 import type { Vector3Like } from 'hytopia';
-import { ParticleConfig, ParticleAnimations, ColorLike, ColorGradient } from './types';
-import { AnimationSystem } from './animation/AnimationSystem';
+import { ParticleConfig, ParticleAnimations, ColorLike, ColorGradient } from '../types';
+import { AnimationSystem } from '../animation/AnimationSystem';
 
 export class Particle {
   private entity: Entity;

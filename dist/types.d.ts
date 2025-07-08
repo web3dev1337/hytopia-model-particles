@@ -4,24 +4,71 @@ export type Vector3Like = {
     y: number;
     z: number;
 };
+export type ColorLike = {
+    r: number;
+    g: number;
+    b: number;
+};
+export interface AnimationCurve {
+    type: 'linear' | 'easeIn' | 'easeOut' | 'easeInOut' | 'curve';
+    keyframes?: {
+        time: number;
+        value: number;
+    }[];
+}
+export interface ColorGradient {
+    type: 'linear' | 'smooth';
+    keyframes: {
+        time: number;
+        color: ColorLike;
+    }[];
+}
+export interface ParticleAnimations {
+    scaleOverTime?: {
+        start: number;
+        end: number;
+        curve?: AnimationCurve;
+    };
+    colorOverTime?: ColorGradient;
+    opacityOverTime?: {
+        start: number;
+        end: number;
+        curve?: AnimationCurve;
+    };
+    rotationOverTime?: {
+        velocity: number;
+        acceleration?: number;
+    };
+}
 export interface ParticleConfig {
     modelUri: string;
-    modelScale?: number;
-    tintColor?: {
-        r: number;
-        g: number;
-        b: number;
+    modelScale?: number | {
+        start: number;
+        end: number;
     };
+    tintColor?: ColorLike | ColorGradient;
     lifetime?: number;
     mass?: number;
     friction?: number;
     bounciness?: number;
     useGravity?: boolean;
+    gravityScale?: number;
     collisionGroup?: number;
     collisionMask?: number;
+    animations?: ParticleAnimations;
+    opacity?: number | {
+        start: number;
+        end: number;
+    };
+    rotation?: {
+        min: number;
+        max: number;
+        velocity?: number;
+    };
 }
 export interface ParticleEffect {
     name: string;
+    extends?: string;
     config: ParticleConfig;
     count: number;
     spread?: number;
@@ -31,6 +78,36 @@ export interface ParticleEffect {
     angularVelocityMax?: Vector3Like;
     scaleVariation?: number;
     lifetimeVariation?: number;
+    pattern?: string;
+    patternModifiers?: Record<string, any>;
+}
+export interface PerformanceMetrics {
+    currentFPS: number;
+    averageFPS: number;
+    particleCount: number;
+    poolSize: number;
+    qualityLevel: 'high' | 'medium' | 'low';
+    droppedFrames: number;
+    lastFrameTime: number;
+}
+export interface PerformanceOptions {
+    enableAdaptiveQuality?: boolean;
+    targetFPS?: number;
+    qualityLevels?: {
+        high: {
+            maxParticles: number;
+            particleScale?: number;
+        };
+        medium: {
+            maxParticles: number;
+            particleScale?: number;
+        };
+        low: {
+            maxParticles: number;
+            particleScale?: number;
+        };
+    };
+    monitoringInterval?: number;
 }
 export interface ParticleSystemOptions {
     maxParticles?: number;
@@ -38,5 +115,16 @@ export interface ParticleSystemOptions {
     cleanupInterval?: number;
     performanceMode?: 'high' | 'balanced' | 'low';
     entityFactory?: (config: any) => Entity;
+    performance?: PerformanceOptions;
+    configPath?: string;
+    enableHotReload?: boolean;
+    debug?: boolean;
+}
+export interface QueuedEffect {
+    effectName: string;
+    position: Vector3Like;
+    options?: any;
+    priority: number;
+    timestamp: number;
 }
 //# sourceMappingURL=types.d.ts.map

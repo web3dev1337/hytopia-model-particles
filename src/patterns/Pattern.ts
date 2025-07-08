@@ -9,6 +9,7 @@ export interface PatternConfig {
 
 export abstract class Pattern {
   protected config: PatternConfig;
+  public count: number = 10;
 
   constructor(config: PatternConfig = {}) {
     this.config = {
@@ -18,6 +19,7 @@ export abstract class Pattern {
       randomness: 0.5,
       ...config
     };
+    this.count = this.config.count || 10;
   }
 
   abstract generatePoints(): Vector3Like[];

@@ -1,12 +1,12 @@
 import { World, Entity } from 'hytopia';
 import type { Vector3Like } from 'hytopia';
 import { Particle } from './Particle';
-import { ParticleConfig, ParticleEffect, ParticleSystemOptions } from './types';
-import { Pattern } from './patterns/Pattern';
-import { PatternRegistry } from './registry/PatternRegistry';
-import { PerformanceMonitor } from './performance/PerformanceMonitor';
-import { EffectQueue } from './queue/EffectQueue';
-import { EnhancedYAMLLoader } from './config/EnhancedYAMLLoader';
+import { ParticleConfig, ParticleEffect, ParticleSystemOptions } from '../types';
+import { Pattern } from '../patterns/Pattern';
+import { PatternRegistry } from '../registry/PatternRegistry';
+import { PerformanceMonitor } from '../performance/PerformanceMonitor';
+import { EffectQueue } from '../queue/EffectQueue';
+import { EnhancedYAMLLoader } from '../config/EnhancedYAMLLoader';
 
 export class ParticleSystem {
   private world: World;
