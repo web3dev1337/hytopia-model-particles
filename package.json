@@ -1,7 +1,7 @@
 {
   "name": "hytopia-model-particles",
-  "version": "1.0.5",
-  "description": "A particle system plugin for the Hytopia SDK",
+  "version": "2.0.0",
+  "description": "A fully functional particle system plugin for the Hytopia SDK with physics support",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
@@ -16,12 +16,14 @@
     "particles",
     "effects",
     "game",
-    "sdk"
+    "sdk",
+    "physics",
+    "entity-factory"
   ],
-  "author": "",
+  "author": "NeuralPixelGames",
   "license": "MIT",
   "dependencies": {
-    "hytopia": "github:hytopiagg/sdk#main",
+    "hytopia": "^0.6.27",
     "js-yaml": "^4.1.0"
   },
   "devDependencies": {

@@ -14,20 +14,24 @@ var __exportStar = (this && this.__exportStar) || function(m, exports) {
     for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.streamPattern = exports.sparkPattern = exports.explosionPattern = exports.ParticlePatternRegistry = exports.ParticleEmitter = exports.initializeParticles = void 0;
-// Main exports
-var plugin_1 = require("./plugin");
-Object.defineProperty(exports, "initializeParticles", { enumerable: true, get: function () { return plugin_1.initializeParticles; } });
-var ParticleEmitter_1 = require("./core/ParticleEmitter");
-Object.defineProperty(exports, "ParticleEmitter", { enumerable: true, get: function () { return ParticleEmitter_1.ParticleEmitter; } });
-var ParticlePatternsRegistry_1 = require("./patterns/ParticlePatternsRegistry");
-Object.defineProperty(exports, "ParticlePatternRegistry", { enumerable: true, get: function () { return ParticlePatternsRegistry_1.ParticlePatternRegistry; } });
+exports.ColliderShape = exports.RigidBodyType = exports.Entity = exports.World = exports.YAMLLoader = exports.StreamPattern = exports.ExplosionPattern = exports.Pattern = exports.ParticleSystem = exports.Particle = void 0;
+var Particle_1 = require("./Particle");
+Object.defineProperty(exports, "Particle", { enumerable: true, get: function () { return Particle_1.Particle; } });
+var ParticleSystem_1 = require("./ParticleSystem");
+Object.defineProperty(exports, "ParticleSystem", { enumerable: true, get: function () { return ParticleSystem_1.ParticleSystem; } });
+var Pattern_1 = require("./patterns/Pattern");
+Object.defineProperty(exports, "Pattern", { enumerable: true, get: function () { return Pattern_1.Pattern; } });
+var ExplosionPattern_1 = require("./patterns/ExplosionPattern");
+Object.defineProperty(exports, "ExplosionPattern", { enumerable: true, get: function () { return ExplosionPattern_1.ExplosionPattern; } });
+var StreamPattern_1 = require("./patterns/StreamPattern");
+Object.defineProperty(exports, "StreamPattern", { enumerable: true, get: function () { return StreamPattern_1.StreamPattern; } });
+var YAMLLoader_1 = require("./YAMLLoader");
+Object.defineProperty(exports, "YAMLLoader", { enumerable: true, get: function () { return YAMLLoader_1.YAMLLoader; } });
 __exportStar(require("./types"), exports);
-// Pattern exports
-var explosionPattern_1 = require("./patterns/built-in/explosionPattern");
-Object.defineProperty(exports, "explosionPattern", { enumerable: true, get: function () { return explosionPattern_1.explosionPattern; } });
-var sparkPattern_1 = require("./patterns/built-in/sparkPattern");
-Object.defineProperty(exports, "sparkPattern", { enumerable: true, get: function () { return sparkPattern_1.sparkPattern; } });
-var streamPattern_1 = require("./patterns/built-in/streamPattern");
-Object.defineProperty(exports, "streamPattern", { enumerable: true, get: function () { return streamPattern_1.streamPattern; } });
+// Re-export Hytopia types that users might need
+var hytopia_1 = require("hytopia");
+Object.defineProperty(exports, "World", { enumerable: true, get: function () { return hytopia_1.World; } });
+Object.defineProperty(exports, "Entity", { enumerable: true, get: function () { return hytopia_1.Entity; } });
+Object.defineProperty(exports, "RigidBodyType", { enumerable: true, get: function () { return hytopia_1.RigidBodyType; } });
+Object.defineProperty(exports, "ColliderShape", { enumerable: true, get: function () { return hytopia_1.ColliderShape; } });
 //# sourceMappingURL=index.js.map

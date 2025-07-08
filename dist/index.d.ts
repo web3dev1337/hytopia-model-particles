@@ -1,8 +1,10 @@
-export { initializeParticles } from './plugin';
-export { ParticleEmitter } from './core/ParticleEmitter';
-export { ParticlePatternRegistry } from './patterns/ParticlePatternsRegistry';
+export { Particle } from './Particle';
+export { ParticleSystem } from './ParticleSystem';
+export { Pattern } from './patterns/Pattern';
+export { ExplosionPattern } from './patterns/ExplosionPattern';
+export { StreamPattern } from './patterns/StreamPattern';
+export { YAMLLoader } from './YAMLLoader';
 export * from './types';
-export { explosionPattern } from './patterns/built-in/explosionPattern';
-export { sparkPattern } from './patterns/built-in/sparkPattern';
-export { streamPattern } from './patterns/built-in/streamPattern';
-export type { ParticleEffectConfig } from './types';
+export { World, Entity, RigidBodyType, ColliderShape } from 'hytopia';
+export type { Vector3Like } from 'hytopia';
+//# sourceMappingURL=index.d.ts.map

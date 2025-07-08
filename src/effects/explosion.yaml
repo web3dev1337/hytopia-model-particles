@@ -1,0 +1,68 @@
+effects:
+  explosion:
+    config:
+      modelUri: "models/particle.gltf"
+      modelScale: 0.5
+      tintColor: { r: 255, g: 200, b: 100 }
+      lifetime: 2000
+      mass: 0.2
+      friction: 0.1
+      bounciness: 0.3
+      useGravity: true
+    count: 30
+    spread: 2
+    velocityMin: "-10,-5,-10"
+    velocityMax: "10,15,10"
+    angularVelocityMin: "-5,-5,-5"
+    angularVelocityMax: "5,5,5"
+    scaleVariation: 0.5
+    lifetimeVariation: 0.3
+
+  spark:
+    config:
+      modelUri: "models/spark.gltf"
+      modelScale: 0.1
+      tintColor: { r: 255, g: 255, b: 150 }
+      lifetime: 1000
+      mass: 0.05
+      friction: 0.01
+      bounciness: 0.8
+      useGravity: true
+    count: 15
+    spread: 1
+    velocityMin: "-5,5,-5"
+    velocityMax: "5,20,5"
+    scaleVariation: 0.3
+    lifetimeVariation: 0.5
+
+  blood:
+    config:
+      modelUri: "models/blood.gltf"
+      modelScale: 0.3
+      tintColor: { r: 180, g: 20, b: 20 }
+      lifetime: 3000
+      mass: 0.3
+      friction: 0.8
+      bounciness: 0.1
+      useGravity: true
+    count: 8
+    spread: 0.5
+    velocityMin: "-3,2,-3"
+    velocityMax: "3,8,3"
+    scaleVariation: 0.4
+    lifetimeVariation: 0.2
+
+  smoke:
+    config:
+      modelUri: "models/smoke.gltf"
+      modelScale: 1.0
+      tintColor: { r: 100, g: 100, b: 100 }
+      lifetime: 4000
+      mass: 0.01
+      useGravity: false
+    count: 5
+    spread: 1
+    velocityMin: "-1,1,-1"
+    velocityMax: "1,3,1"
+    scaleVariation: 0.5
+    lifetimeVariation: 0.3
