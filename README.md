@@ -1,395 +1,264 @@
 # Hytopia Model Particles
 
-A powerful and flexible particle system plugin for the Hytopia SDK that brings life to your games with beautiful particle effects.
-
-[Technical documentation available here](./TECHNICAL_README.md)
+A fully functional particle system plugin for the Hytopia SDK with physics support, object pooling, and extensible pattern system.
 
 ## ✨ Features
 
-- 🎮 Easy-to-use particle effect system
-- 🎨 Built-in patterns for common effects (explosion, stream, spark)
-- ⚙️ Configure via YAML or JSON
-- 🚀 High performance with smart optimizations
-- 🎯 Physics-enabled particles with collision support
-- 🔧 Extensible pattern system
+- 🎯 **100% Hytopia SDK Compatible** - Built specifically for Hytopia SDK v0.6.27+
+- 🚀 **High Performance** - Object pooling with configurable particle limits
+- 🎨 **Pattern System** - Extensible patterns (explosion, stream, custom)
+- 📝 **YAML Configuration** - Load particle effects from YAML files
+- ⚡ **Full Physics** - Proper rigid body physics with collision groups
+- 🔧 **TypeScript Support** - Fully typed with .d.ts files
+- 🏭 **Entity Factory Pattern** - Works with any Hytopia game's model context
 
-## 📦 Installation  [NOT UPLOADED YET]
+## 📦 Installation
 
 ```bash
-npm install hytopia-model-particles [NOT UPLOADED YET]
+npm install hytopia-model-particles
 ```
-
-**Requirements:**
-- Node.js 14+
-- Hytopia SDK (peer dependency)
 
 ## 🚀 Quick Start
 
-### Basic Usage
-
 ```typescript
-import { ParticleEmitter } from 'hytopia-model-particles';
+import { ParticleSystem, YAMLLoader } from 'hytopia-model-particles';
+import { Entity } from 'hytopia';
 
-// Initialize with your game world
-const emitter = new ParticleEmitter(world);
-
-// Create an explosion effect
-emitter.emitEffect('explosion', { x: 0, y: 1, z: 0 });
-
-// Create a continuous stream
-emitter.emitEffect('stream', { x: 0, y: 0, z: 0 }, {
-  patternModifiers: {
-    direction: { x: 0, y: 1, z: 0 },
-    spread: 15
-  }
+// Initialize with entity factory to access your game's models
+const particleSystem = new ParticleSystem(world, {
+  maxParticles: 500,
+  autoCleanup: true,
+  entityFactory: (config) => new Entity(config)
 });
 
-// Update in your game loop
-function gameLoop(deltaTime: number) {
-  emitter.update(deltaTime);
-}
+// Register a simple effect
+particleSystem.registerEffect({
+  name: 'explosion',
+  config: {
+    modelUri: 'models/particles/spark.gltf',
+    modelScale: 0.3,
+    lifetime: 3000,
+    mass: 0.1,
+    useGravity: true
+  },
+  count: 20,
+  spread: 2,
+  velocityMin: { x: -3, y: 1, z: -3 },
+  velocityMax: { x: 3, y: 5, z: 3 }
+});
+
+// Spawn particles
+particleSystem.spawn('explosion', position);
 ```
 
-### Using Configuration Files
+## 🏭 Entity Factory Pattern
 
-Create a `particles.yml` file:
+The plugin uses an entity factory pattern to solve model loading issues. This allows the plugin to create entities in your game's context where models are already loaded:
+
+```typescript
+const particleSystem = new ParticleSystem(world, {
+  entityFactory: (config) => new Entity(config) // Creates entities with your game's loaded models
+});
+```
+
+## 🎨 Pattern System
+
+### Built-in Patterns
+
+```typescript
+// Explosion pattern - particles spread outward in all directions
+particleSystem.spawnWithPattern('explosion', particleConfig, position, {
+  intensity: 1.5,
+  count: 30
+});
+
+// Stream pattern - continuous flow of particles
+particleSystem.spawnWithPattern('stream', particleConfig, position, {
+  direction: { x: 0, y: 1, z: 0 },
+  spread: 0.5,
+  velocity: 2.0
+});
+```
+
+### Custom Patterns
+
+```typescript
+import { Pattern } from 'hytopia-model-particles';
+
+class SpiralPattern extends Pattern {
+  generatePoints(): Vector3Like[] {
+    const points: Vector3Like[] = [];
+    for (let i = 0; i < this.count; i++) {
+      const angle = (i / this.count) * Math.PI * 2 * 3; // 3 rotations
+      const radius = (i / this.count) * 2;
+      points.push({
+        x: Math.cos(angle) * radius,
+        y: i * 0.1,
+        z: Math.sin(angle) * radius
+      });
+    }
+    return points;
+  }
+}
+
+particleSystem.registerPattern('spiral', new SpiralPattern());
+```
+
+## 📝 YAML Configuration
+
+Create effect configurations in YAML:
 
 ```yaml
-effects:
-  magicSpell:
-    pattern: spark
-    patternModifiers:
-      intensity: 1.5
-      sparkle: true
-      color: { r: 0.5, g: 0.1, b: 1.0 }
+# effects/fire.yaml
+name: fire
+config:
+  modelUri: models/particles/flame.gltf
+  modelScale: 0.5
+  lifetime: 2000
+  mass: 0.01
+  useGravity: false
+  tintColor:
+    r: 255
+    g: 100
+    b: 0
+count: 15
+spread: 0.5
+velocityMin:
+  x: -0.2
+  y: 1
+  z: -0.2
+velocityMax:
+  x: 0.2
+  y: 3
+  z: 0.2
+```
+
+Load and use:
+
+```typescript
+const fireEffect = YAMLLoader.loadEffect('effects/fire.yaml');
+particleSystem.registerEffect(fireEffect);
+particleSystem.spawn('fire', position);
+```
+
+## ⚡ Physics Configuration
+
+Full physics support with Hytopia's Rapier integration:
+
+```typescript
+const particleConfig = {
+  modelUri: 'models/particles/debris.gltf',
+  modelScale: 0.2,
+  lifetime: 5000,
   
-  waterfall:
-    pattern: stream
-    patternModifiers:
-      direction: { x: 0, y: -1, z: 0 }
-      spread: 10
-      intensity: 0.8
-```
-
-Load and use your effects:
-
-```typescript
-const emitter = ParticleEmitter.fromYaml('./particles.yml', world);
-emitter.emitEffect('magicSpell', playerPosition);
-```
-
-## 🎨 Built-in Effects
-
-### 💥 Explosion
-Perfect for impacts, explosions, and bursts.
-```typescript
-emitter.emitEffect('explosion', position, {
-  patternModifiers: {
-    intensity: 2.0,  // More particles
-    force: 1.5,      // Faster particles
-    debris: true     // Add physics-enabled debris
-  }
-});
-```
-
-### 🌊 Stream
-Ideal for continuous effects like water, fire, or magic.
-```typescript
-emitter.emitEffect('stream', position, {
-  patternModifiers: {
-    flow: 0.5,
-    spread: 15,
-    direction: { x: 0, y: 1, z: 0 }
-  }
-});
-```
-
-### ✨ Spark
-Great for impacts, highlights, and magical effects.
-```typescript
-emitter.emitEffect('spark', position, {
-  patternModifiers: {
-    impact: 2.0,   // Stronger effect
-    sparkle: true  // Add twinkling
-  }
-});
-```
-
-## 🔧 Creating Custom Effects
-
-1. Create your pattern class:
-```typescript
-import { Pattern, ParticlePatternRegistry } from 'hytopia-model-particles';
-
-class RainPattern extends Pattern {
-  name = 'rain';
-  description = 'Creates a rainfall effect';
+  // Physics properties
+  mass: 0.5,
+  friction: 0.8,
+  bounciness: 0.3,
+  useGravity: true,
   
-  defaultConfig = {
-    particleCount: 100,
-    model: "models/raindrop.gltf",
-    lifetime: { min: 1, max: 2 },
-    physics: {
-      enabled: true,
-      useGravity: true
-    }
-  };
+  // Collision settings
+  collisionGroup: CollisionGroup.GROUP_2,
+  collisionMask: CollisionGroup.BLOCK | CollisionGroup.GROUND
+};
+```
 
-  constructor() {
-    super();
-    this.modifiers = {
-      intensity: (config, value) => ({
-        ...config,
-        particleCount: Math.floor(config.particleCount * value)
-      }),
-      area: (config, value) => ({
-        ...config,
-        physics: {
-          ...config.physics,
-          rigidBody: {
-            ...config.physics?.rigidBody,
-            colliders: [{
-              shape: "box",
-              size: { x: value, y: value, z: value }
-            }]
-          }
-        }
-      })
-    };
-  }
+## 🚀 Performance Optimization
+
+The system uses object pooling to maintain performance:
+
+```typescript
+const particleSystem = new ParticleSystem(world, {
+  maxParticles: 1000,        // Maximum particle pool size
+  autoCleanup: true,         // Automatically clean up inactive particles
+  cleanupInterval: 1000,     // Cleanup check interval (ms)
+  performanceMode: 'balanced' // 'high', 'balanced', or 'low'
+});
+```
+
+## 📚 API Reference
+
+### ParticleSystem
+
+- `registerEffect(effect: ParticleEffect): void` - Register a reusable effect
+- `registerPattern(name: string, pattern: Pattern): void` - Register a custom pattern
+- `spawn(effectName: string, position: Vector3Like, options?: any): void` - Spawn a registered effect
+- `spawnWithPattern(patternName: string, config: ParticleConfig, position: Vector3Like, modifiers?: any): void` - Spawn with pattern
+- `despawnAll(): void` - Immediately despawn all active particles
+- `update(): void` - Manual update (called automatically if autoCleanup is true)
+
+### ParticleConfig
+
+```typescript
+interface ParticleConfig {
+  modelUri: string;
+  modelScale?: number;
+  tintColor?: { r: number; g: number; b: number };
+  lifetime?: number;
+  mass?: number;
+  friction?: number;
+  bounciness?: number;
+  useGravity?: boolean;
+  collisionGroup?: number;
+  collisionMask?: number;
 }
 ```
 
-2. Register and use your pattern:
-```typescript
-ParticlePatternRegistry.registerPattern(new RainPattern());
+## 💡 Examples
 
-emitter.emitEffect('rain', { x: 0, y: 10, z: 0 }, {
-  patternModifiers: {
-    intensity: 2.0,  // Heavy rain
-    area: 20        // Large area
-  }
+### Blood Splatter Effect
+```typescript
+particleSystem.registerEffect({
+  name: 'blood',
+  config: {
+    modelUri: 'models/particles/blood.gltf',
+    modelScale: 0.15,
+    tintColor: { r: 150, g: 0, b: 0 },
+    lifetime: 4000,
+    mass: 0.05,
+    friction: 0.9,
+    bounciness: 0.1,
+    useGravity: true
+  },
+  count: 8,
+  spread: 1,
+  velocityMin: { x: -2, y: 0, z: -2 },
+  velocityMax: { x: 2, y: 3, z: 2 }
 });
 ```
 
-## 🎮 Performance Tips
+### Smoke Effect
+```typescript
+particleSystem.registerEffect({
+  name: 'smoke',
+  config: {
+    modelUri: 'models/particles/smoke.gltf',
+    modelScale: 1.0,
+    tintColor: { r: 100, g: 100, b: 100 },
+    lifetime: 6000,
+    mass: 0.001,
+    useGravity: false
+  },
+  count: 5,
+  spread: 0.5,
+  velocityMin: { x: -0.1, y: 0.5, z: -0.1 },
+  velocityMax: { x: 0.1, y: 1, z: 0.1 }
+});
+```
 
-1. **Particle Count**: Keep particle counts reasonable
-   - Light effects: 10-50 particles
-   - Medium effects: 50-200 particles
-   - Heavy effects: 200-500 particles
+## 🔄 Changelog
 
-2. **Physics Usage**: Use physics selectively
-   ```typescript
-   emitter.emitEffect('debris', position, {
-     physics: {
-       enabled: true,      // Enable for important particles
-       rigidBody: {
-         useGravity: true,
-         type: "dynamic"
-       }
-     }
-   });
-   ```
+### v2.0.0
+- Complete rewrite with working implementation
+- Added entity factory pattern for proper model loading
+- Full physics support with Rapier
+- Pattern system implementation
+- YAML configuration support
+- Object pooling for performance
 
-3. **Effect Cleanup**: Clean up effects when done
-   ```typescript
-   // Stop emitting new particles
-   emitter.stopEffect('myEffect');
-   
-   // Clear all particles immediately
-   emitter.clear();
-   ```
-
-## 📚 Additional Resources
-
-- [Technical Documentation](./TECHNICAL_README.md)
-- [API Reference](https://hytopia.dev/docs/particles) (external)
-- [Examples Repository](https://github.com/hytopiagg/particle-examples)
-
-## 🤝 Contributing
-
-Contributions are welcome! Please check our [Contributing Guidelines](CONTRIBUTING.md).
+### v1.0.x
+- Initial stub implementation (non-functional)
 
 ## 📄 License
 
-MIT License - feel free to use in your Hytopia games!
-
-## 📝 Configuration Guide
-
-### Global Configuration
-
-You can set global options in your `particles.yml` or via code:
-
-```yaml
-global:
-  adaptivePerformance: true    # Automatically adjust particle counts based on performance
-  maxParticles: 1000          # Maximum particles across all effects
-  poolOptions:
-    cellSize: 5              # Size of spatial grid cells
-    sleepDistance: 50        # Distance at which particles go to sleep
-    cleanupCheckInterval: 1000  # Milliseconds between cleanup checks
-    bounds:                  # World boundaries for particles
-      min: { x: -1000, y: -1000, z: -1000 }
-      max: { x: 1000, y: 1000, z: 1000 }
-```
-
-### Effect Configuration
-
-Each effect can be configured with these parameters:
-
-```yaml
-effects:
-  myEffect:
-    particleCount: 100        # Number of particles to emit
-    model: "models/particle.gltf"  # 3D model to use (optional)
-    lifetime: 2              # Particle lifetime in seconds
-    speed:
-      min: 5                # Minimum initial speed
-      max: 10               # Maximum initial speed
-    direction:              # Emission direction (optional)
-      x: 0
-      y: 1
-      z: 0
-    spread: 15             # Spread angle in degrees
-    size: 0.5              # Particle size/scale
-    fadeOut: true          # Fade out over lifetime
-    rotationSpeed:         # Rotation speed range (optional)
-      min: 0
-      max: 360
-    scaleOverTime:         # Size change over lifetime (optional)
-      start: 1.0
-      end: 0.0
-    color:                 # Particle color tint (optional)
-      r: 1.0
-      g: 0.5
-      b: 0.0
-      a: 1.0              # Alpha (optional)
-    physics:              # Physics configuration (optional)
-      rigidBody:
-        type: "dynamic"    # dynamic, static, or kinematic
-        mass: 1.0
-        useGravity: true
-        gravityScale: 1.0
-        linearDamping: 0.1
-        angularDamping: 0.1
-        fixedRotation: false
-        material:
-          restitution: 0.5  # Bounciness (0-1)
-          friction: 0.5     # Surface friction (0-1)
-          density: 1.0      # Material density
-        colliders:
-          - shape: "sphere"  # sphere, box, or cylinder
-            size: { x: 1, y: 1, z: 1 }  # or radius for sphere
-            offset: { x: 0, y: 0, z: 0 }
-            isTrigger: false
-      forces:              # Optional forces
-        wind:
-          direction: { x: 1, y: 0, z: 0 }
-          strength: 10
-          turbulence: 0.5
-        vortex:
-          center: { x: 0, y: 0, z: 0 }
-          strength: 5
-          radius: 10
-```
-
-### Pattern System
-
-Patterns provide default configurations that can be overridden. Here's how to create and use patterns:
-
-```typescript
-// Define a pattern
-class FirePattern extends Pattern {
-  name = 'fire';
-  description = 'A realistic fire effect';
-  
-  defaultConfig = {
-    particleCount: 50,
-    lifetime: 1.5,
-    speed: { min: 2, max: 4 },
-    direction: { x: 0, y: 1, z: 0 },
-    spread: 25,
-    size: 0.3,
-    fadeOut: true,
-    color: { r: 1, g: 0.5, b: 0.1 },
-    scaleOverTime: {
-      start: 1.0,
-      end: 0.0
-    },
-    physics: {
-      enabled: true,
-      forces: {
-        wind: {
-          direction: { x: 0, y: 1, z: 0 },
-          strength: 2,
-          turbulence: 0.3
-        }
-      }
-    }
-  };
-
-  // Custom modifiers
-  modifiers = {
-    intensity: (config, value) => ({
-      ...config,
-      particleCount: Math.floor(config.particleCount * value),
-      speed: {
-        min: config.speed.min * value,
-        max: config.speed.max * value
-      }
-    }),
-    heat: (config, value) => ({
-      ...config,
-      color: {
-        r: 1,
-        g: 0.2 + (value * 0.3),
-        b: 0.1
-      }
-    })
-  };
-}
-
-// Register the pattern
-ParticlePatternRegistry.registerPattern(new FirePattern());
-
-// Use the pattern with overrides
-emitter.emitEffect('fire', position, {
-  patternModifiers: {
-    intensity: 1.5,  // 50% more particles and speed
-    heat: 0.8       // Hotter fire (more yellow)
-  },
-  // Override any default config
-  lifetime: 2.0,    // Longer lifetime
-  size: 0.5        // Larger particles
-});
-```
-
-### Using Configuration Files
-
-You can combine patterns and custom configurations in YAML:
-
-```yaml
-effects:
-  campfire:
-    pattern: fire          # Use fire pattern as base
-    patternModifiers:
-      intensity: 0.7      # Smaller fire
-      heat: 0.3          # Cooler fire (more red)
-    # Override pattern defaults
-    spread: 20           
-    physics:
-      forces:
-        wind:
-          strength: 1.5   # Less wind effect
-
-  inferno:
-    pattern: fire
-    patternModifiers:
-      intensity: 2.0      # Bigger fire
-      heat: 1.0          # Hottest fire (more yellow)
-    # Add additional effects
-    rotationSpeed:
-      min: 90
-      max: 180
-``` 
+MIT

@@ -1,13 +1,11 @@
-// Main exports
-export { initializeParticles } from './plugin';
-export { ParticleEmitter } from './core/ParticleEmitter';
-export { ParticlePatternRegistry } from './patterns/ParticlePatternsRegistry';
+export { Particle } from './Particle';
+export { ParticleSystem } from './ParticleSystem';
+export { Pattern } from './patterns/Pattern';
+export { ExplosionPattern } from './patterns/ExplosionPattern';
+export { StreamPattern } from './patterns/StreamPattern';
+export { YAMLLoader } from './YAMLLoader';
 export * from './types';
 
-// Pattern exports
-export { explosionPattern } from './patterns/built-in/explosionPattern';
-export { sparkPattern } from './patterns/built-in/sparkPattern';
-export { streamPattern } from './patterns/built-in/streamPattern';
-
-// Type exports for HYTOPIA SDK integration
-export type { ParticleEffectConfig } from './types'; 
+// Re-export Hytopia types that users might need
+export { World, Entity, RigidBodyType, ColliderShape } from 'hytopia';
+export type { Vector3Like } from 'hytopia';

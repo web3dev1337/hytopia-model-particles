@@ -1,12 +1,21 @@
-import { Vector3, World } from './types';
+import { Entity, World } from 'hytopia';
+import type { Vector3Like } from 'hytopia';
+import { ParticleConfig } from './types';
 export declare class Particle {
+    private config;
+    private entityFactory?;
     private entity;
-    private inUse;
-    private life;
-    private velocity;
-    constructor(world: World, modelUri?: string, size?: number);
-    spawn(world: World, position: Vector3, velocity: Vector3, lifetime: number, usePhysics: boolean, gravity: boolean): void;
-    update(deltaTime: number, usePhysics: boolean, gravity: boolean): void;
+    private spawnTime;
+    private lifetime;
+    private isActive;
+    private velocity?;
+    private angularVelocity?;
+    constructor(config: ParticleConfig, entityFactory?: ((config: any) => Entity) | undefined);
+    spawn(world: World, position: Vector3Like, velocity?: Vector3Like, angularVelocity?: Vector3Like): void;
+    update(): boolean;
     despawn(): void;
-    isInUse(): boolean;
+    reset(config?: Partial<ParticleConfig>): void;
+    get active(): boolean;
+    get position(): Vector3Like | undefined;
 }
+//# sourceMappingURL=Particle.d.ts.map
