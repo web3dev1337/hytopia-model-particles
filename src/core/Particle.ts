@@ -11,6 +11,9 @@ export class Particle {
   private velocity?: Vector3Like;
   private angularVelocity?: Vector3Like;
   
+  // Pooling support
+  public bufferIndex: number = -1;
+  
   // Animation properties
   private animations?: ParticleAnimations;
   private baseScale: number;
