@@ -47,6 +47,13 @@ export class EffectQueue {
   }
   
   /**
+   * Dequeue single effect (v2.2 compatibility)
+   */
+  dequeue(): QueuedEffect | undefined {
+    return this.queue.shift();
+  }
+  
+  /**
    * Process queued effects
    * Returns array of effects to spawn this frame
    */

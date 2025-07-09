@@ -8,6 +8,31 @@ export interface YAMLConfig {
 }
 
 export class YAMLLoader {
+  private configPath: string;
+  
+  constructor(configPath: string = '') {
+    this.configPath = configPath;
+  }
+  
+  /**
+   * Load effects from YAML files (v2.2 instance method)
+   */
+  loadEffects(): ParticleEffect[] {
+    const effects: ParticleEffect[] = [];
+    
+    try {
+      // Try to load from config path
+      if (this.configPath && fs.existsSync(this.configPath)) {
+        const config = YAMLLoader.loadFromFile(this.configPath);
+        effects.push(...Object.values(config.effects));
+      }
+    } catch (error) {
+      console.warn('Failed to load YAML effects:', error);
+    }
+    
+    return effects;
+  }
+  
   static loadFromFile(filepath: string): YAMLConfig {
     try {
       const fileContents = fs.readFileSync(filepath, 'utf8');

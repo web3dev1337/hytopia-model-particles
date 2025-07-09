@@ -89,6 +89,17 @@ export interface PerformanceMetrics {
     qualityLevel: 'high' | 'medium' | 'low';
     droppedFrames: number;
     lastFrameTime: number;
+    poolStats?: {
+        available: number;
+        active: number;
+        totalCreated: number;
+        poolEfficiency: number;
+    };
+    bufferStats?: {
+        capacity: number;
+        used: number;
+        utilization: number;
+    };
 }
 export interface PerformanceOptions {
     enableAdaptiveQuality?: boolean;
@@ -108,6 +119,14 @@ export interface PerformanceOptions {
         };
     };
     monitoringInterval?: number;
+    enablePooling?: boolean;
+    enableSpatialOptimization?: boolean;
+    updateRadius?: number;
+}
+export interface PhysicsOptions {
+    globalWind?: Vector3Like;
+    turbulence?: number;
+    enableForces?: boolean;
 }
 export interface ParticleSystemOptions {
     maxParticles?: number;
@@ -116,6 +135,8 @@ export interface ParticleSystemOptions {
     performanceMode?: 'high' | 'balanced' | 'low';
     entityFactory?: (config: any) => Entity;
     performance?: PerformanceOptions;
+    physics?: PhysicsOptions;
+    poolSize?: number;
     configPath?: string;
     enableHotReload?: boolean;
     debug?: boolean;
