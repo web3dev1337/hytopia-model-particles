@@ -6,8 +6,9 @@ Advanced particle system plugin for the Hytopia SDK featuring **TRUE entity pool
 
 - 🎯 **TRUE Entity Pooling** - Entities stay spawned, just move between positions!
 - 🚄 **Zero Spawn/Despawn Overhead** - Particles teleport instead of recreating
-- 🏊 **Pre-spawned Pool** - All entities initialized at startup
-- 🎨 **Parking System** - Inactive particles hide at y=-1000
+- 🏊 **Gradual Pool Building** - Builds 1000 entities at 10 per tick to avoid FPS drops
+- 🎨 **Parking System** - Inactive particles hide at y=-1000 with physics disabled
+- ⚡ **Fixed Velocity Application** - Particles explode properly when activated from pool
 
 ## Previous v2.2.0 Features
 
