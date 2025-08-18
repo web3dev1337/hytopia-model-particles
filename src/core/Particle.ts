@@ -473,7 +473,10 @@ export class Particle {
   }
   
   get position(): Vector3Like | undefined {
-    return this.entity.position;
+    // Cache position to avoid Rust aliasing errors
+    if (!this.entity.position) return undefined;
+    const pos = this.entity.position;
+    return { x: pos.x, y: pos.y, z: pos.z };
   }
   
   getLifetimeProgress(): number {
