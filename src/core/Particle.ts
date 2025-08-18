@@ -19,6 +19,7 @@ export class Particle {
   private parkingPosition: Vector3Like = { x: 0, y: -1000, z: 0 };
   private targetPosition?: Vector3Like;
   private rigidBody?: any; // Reference to entity's rigid body
+  private _cachedPosition?: Vector3Like; // Cache position to avoid Rust aliasing
   
   // Animation properties
   private animations?: ParticleAnimations;
@@ -196,6 +197,9 @@ export class Particle {
       // Move to position
       (this.entity as any).setPosition(position);
       
+      // Update cached position
+      this._cachedPosition = { ...position };
+      
       // Make visible
       this.entity.setOpacity(this.currentOpacity);
       
@@ -283,6 +287,9 @@ export class Particle {
 
   update(): boolean {
     if (!this.isActive) return false;
+    
+    // Update cached position first to avoid Rust aliasing
+    this.updateCachedPosition();
     
     const elapsed = Date.now() - this.spawnTime;
     if (elapsed >= this.lifetime) {
@@ -384,6 +391,9 @@ export class Particle {
       // Move to parking position
       (this.entity as any).setPosition(this.parkingPosition);
       
+      // Update cached position
+      this._cachedPosition = { ...this.parkingPosition };
+      
       // Hide
       this.entity.setOpacity(0.0);
     }
@@ -473,10 +483,20 @@ export class Particle {
   }
   
   get position(): Vector3Like | undefined {
-    // Cache position to avoid Rust aliasing errors
-    if (!this.entity.position) return undefined;
-    const pos = this.entity.position;
-    return { x: pos.x, y: pos.y, z: pos.z };
+    // Return cached position to avoid Rust aliasing errors
+    return this._cachedPosition;
+  }
+  
+  /**
+   * Update cached position - call this once per frame
+   */
+  updateCachedPosition(): void {
+    if (this.entity.position) {
+      const pos = this.entity.position;
+      this._cachedPosition = { x: pos.x, y: pos.y, z: pos.z };
+    } else {
+      this._cachedPosition = undefined;
+    }
   }
   
   getLifetimeProgress(): number {
