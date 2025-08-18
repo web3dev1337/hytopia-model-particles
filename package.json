@@ -1,6 +1,6 @@
 {
   "name": "hytopia-model-particles",
-  "version": "2.2.0",
+  "version": "2.3.0",
   "description": "Advanced particle system plugin for Hytopia SDK with animations, patterns, and performance monitoring",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
