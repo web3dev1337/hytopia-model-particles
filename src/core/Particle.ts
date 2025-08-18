@@ -14,6 +14,12 @@ export class Particle {
   // Pooling support
   public bufferIndex: number = -1;
   
+  // True pooling support
+  private isInitialized: boolean = false;
+  private parkingPosition: Vector3Like = { x: 0, y: -1000, z: 0 };
+  private targetPosition?: Vector3Like;
+  private rigidBody?: any; // Reference to entity's rigid body
+  
   // Animation properties
   private animations?: ParticleAnimations;
   private baseScale: number;
@@ -129,67 +135,113 @@ export class Particle {
     }
   }
 
-  spawn(world: World, position: Vector3Like, velocity?: Vector3Like, angularVelocity?: Vector3Like): void {
+  /**
+   * Initialize the entity once in the world (for pooling)
+   */
+  initializeInWorld(world: World): void {
+    if (this.isInitialized) return;
+    
+    // Spawn entity at parking position
+    this.entity.spawn(world, this.parkingPosition);
+    this.isInitialized = true;
+    
+    // Try to get rigid body reference after spawn
+    setTimeout(() => {
+      if ((this.entity as any).rawRigidBody) {
+        this.rigidBody = (this.entity as any).rawRigidBody;
+        console.log('🎯 Got rigid body reference for particle pooling');
+      }
+    }, 100);
+    
+    // Start in parked state
+    this.park();
+  }
+  
+  /**
+   * Activate particle at position (for pooling)
+   */
+  activate(world: World, position: Vector3Like, velocity?: Vector3Like, angularVelocity?: Vector3Like): void {
     if (this.isActive) return;
     
+    // Initialize if not already done
+    if (!this.isInitialized) {
+      this.initializeInWorld(world);
+    }
     
     this.isActive = true;
     this.spawnTime = Date.now();
     this.velocity = velocity;
     this.angularVelocity = angularVelocity;
+    this.targetPosition = position;
     
     // Reset animation state
     this.currentScale = this.baseScale;
     this.currentColor = { ...this.baseColor };
     this.currentOpacity = this.animations?.opacityOverTime?.start || 1;
     
-    // Spawn the entity
-    this.entity.spawn(world, position);
+    // Move entity to position
+    this.moveToPosition(position, velocity);
     
-    // Apply velocities after spawn if physics is enabled
-    if (this.config.mass && this.config.mass > 0 && velocity) {
-      
-      // Retry logic for applying physics - important for large batches
-      let retries = 0;
-      const maxRetries = 5;
-      const retryDelay = 100;
-      
-      const tryApplyPhysics = () => {
-        try {
-          const rawRigidBody = (this.entity as any).rawRigidBody;
-          if (rawRigidBody) {
-            // Successfully got rigid body, apply forces
-            rawRigidBody.applyImpulse(velocity);
-            
-            // Apply some spin for visual effect
-            if (angularVelocity) {
-              rawRigidBody.applyTorqueImpulse(angularVelocity);
-            } else {
-              // Add TINY random spin if none provided
-              const randomSpin = {
-                x: (Math.random() - 0.5) * 0.02,
-                y: (Math.random() - 0.5) * 0.02,
-                z: (Math.random() - 0.5) * 0.02
-              };
-              rawRigidBody.applyTorqueImpulse(randomSpin);
-            }
-          } else if (retries < maxRetries) {
-            // No rigid body yet, retry
-            retries++;
-            setTimeout(tryApplyPhysics, retryDelay);
-          }
-          // Silently give up after max retries
-        } catch (physicsError) {
-          if (retries < maxRetries) {
-            retries++;
-            setTimeout(tryApplyPhysics, retryDelay);
+    // Make visible
+    this.entity.setOpacity(this.currentOpacity);
+  }
+  
+  /**
+   * Old spawn method for backward compatibility
+   */
+  spawn(world: World, position: Vector3Like, velocity?: Vector3Like, angularVelocity?: Vector3Like): void {
+    this.activate(world, position, velocity, angularVelocity);
+  }
+  
+  /**
+   * Move entity to position using available methods
+   */
+  private moveToPosition(position: Vector3Like, velocity?: Vector3Like): void {
+    // Try different methods to move the entity
+    
+    // Method 1: Use rigid body if available
+    if (this.rigidBody) {
+      try {
+        // For kinematic bodies
+        if (this.rigidBody.isKinematicPositionBased && this.rigidBody.isKinematicPositionBased()) {
+          this.rigidBody.setNextKinematicPosition(position);
+        } else {
+          // For dynamic bodies, temporarily make kinematic
+          const wasEnabled = this.rigidBody.isEnabled();
+          this.rigidBody.setPosition(position);
+          if (velocity) {
+            this.rigidBody.setLinearVelocity(velocity);
           }
         }
-      };
-      
-      // Start trying after initial delay
-      setTimeout(tryApplyPhysics, 100);
-    } else {
+        return;
+      } catch (e) {
+        console.warn('Failed to move particle via rigid body:', e);
+      }
+    }
+    
+    // Method 2: If entity has controller with move method
+    if ((this.entity as any).controller && typeof (this.entity as any).controller.move === 'function') {
+      try {
+        (this.entity as any).controller.move(position, 1000, { instant: true });
+        return;
+      } catch (e) {
+        console.warn('Failed to move particle via controller:', e);
+      }
+    }
+    
+    // Method 3: Fallback - despawn and respawn (old method)
+    console.warn('⚠️ No movement method available, falling back to respawn');
+    if (this.entity.isSpawned) {
+      this.entity.despawn();
+    }
+    const world = (this.entity as any).world;
+    if (world) {
+      this.entity.spawn(world, position);
+    }
+    
+    // Apply velocities if physics is enabled
+    if (this.config.mass && this.config.mass > 0 && velocity) {
+      this.applyPhysics(velocity, this.angularVelocity);
     }
   }
 
@@ -276,11 +328,78 @@ export class Particle {
     // Rotation changes not supported on spawned entities
   }
 
-  despawn(): void {
+  /**
+   * Park the particle (for pooling) - moves to parking spot and hides
+   */
+  park(): void {
     if (!this.isActive) return;
     
     this.isActive = false;
-    this.entity.despawn();
+    
+    // Move to parking position
+    this.moveToPosition(this.parkingPosition);
+    
+    // Hide the particle
+    this.entity.setOpacity(0.0);
+    
+    // Reset velocities if we have rigid body
+    if (this.rigidBody) {
+      try {
+        this.rigidBody.setLinearVelocity({ x: 0, y: 0, z: 0 });
+        this.rigidBody.setAngularVelocity({ x: 0, y: 0, z: 0 });
+      } catch (e) {
+        // Ignore errors
+      }
+    }
+  }
+  
+  /**
+   * Old despawn method - now parks instead for pooling
+   */
+  despawn(): void {
+    // For pooling, we park instead of despawning
+    this.park();
+  }
+  
+  /**
+   * Apply physics velocities
+   */
+  private applyPhysics(velocity?: Vector3Like, angularVel?: Vector3Like): void {
+    if (!velocity) return;
+    
+    const maxRetries = 5;
+    let retries = 0;
+    const retryDelay = 50;
+    
+    const tryApplyPhysics = () => {
+      try {
+        const rb = this.rigidBody || (this.entity as any).rawRigidBody;
+        if (rb) {
+          rb.applyImpulse(velocity);
+          if (angularVel) {
+            rb.applyTorqueImpulse(angularVel);
+          } else {
+            // Add tiny random spin
+            const randomSpin = {
+              x: (Math.random() - 0.5) * 0.02,
+              y: (Math.random() - 0.5) * 0.02,
+              z: (Math.random() - 0.5) * 0.02
+            };
+            rb.applyTorqueImpulse(randomSpin);
+          }
+        } else if (retries < maxRetries) {
+          retries++;
+          setTimeout(tryApplyPhysics, retryDelay);
+        }
+      } catch (e) {
+        if (retries < maxRetries) {
+          retries++;
+          setTimeout(tryApplyPhysics, retryDelay);
+        }
+      }
+    };
+    
+    setTimeout(tryApplyPhysics, 100);
   }
 
   reset(config?: Partial<ParticleConfig>): void {
