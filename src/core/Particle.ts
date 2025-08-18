@@ -215,25 +215,34 @@ export class Particle {
     if (this.entity.isSpawned) {
       const rb = this.rigidBody || (this.entity as any).rawRigidBody;
       if (rb) {
-        // FIRST: Move to position BEFORE enabling physics to avoid tunneling
+        // Physics should already be disabled from parking, but make sure
+        if (typeof rb.isEnabled === 'function' && rb.isEnabled()) {
+          console.warn('⚠️ Physics was still enabled when activating particle!');
+          rb.setEnabled(false);
+        }
+        
+        // FIRST: Move to position WITH PHYSICS DISABLED
         if (typeof (this.entity as any).setPosition === 'function') {
           (this.entity as any).setPosition(position);
         } else if (typeof rb.setPosition === 'function') {
           rb.setPosition(position);
         }
         
-        // SECOND: Reset physics properties to defaults
+        // Make visible immediately
+        this.entity.setOpacity(this.currentOpacity);
+        
+        // SECOND: Reset all physics state
         if (typeof rb.setGravityScale === 'function') {
-          rb.setGravityScale(1.0); // Reset gravity to normal
+          rb.setGravityScale(1.0);
         }
         if (typeof rb.setLinearDamping === 'function') {
-          rb.setLinearDamping(0.0); // Reset damping
+          rb.setLinearDamping(0.0);
         }
         if (typeof rb.setAngularDamping === 'function') {
-          rb.setAngularDamping(0.0); // Reset angular damping
+          rb.setAngularDamping(0.0);
         }
         
-        // THIRD: Reset velocities BEFORE enabling physics
+        // Reset velocities
         if (typeof rb.setLinearVelocity === 'function') {
           rb.setLinearVelocity({ x: 0, y: 0, z: 0 });
         }
@@ -241,7 +250,7 @@ export class Particle {
           rb.setAngularVelocity({ x: 0, y: 0, z: 0 });
         }
         
-        // Also reset any accumulated forces
+        // Reset forces
         if (typeof rb.resetForces === 'function') {
           rb.resetForces();
         }
@@ -249,20 +258,17 @@ export class Particle {
           rb.resetTorques();
         }
         
-        // FOURTH: Enable physics AFTER resetting velocities
+        // THIRD: Re-enable physics AFTER position and state are reset
         if (typeof rb.setEnabled === 'function') {
           rb.setEnabled(true);
         }
         
-        // FIFTH: Apply new velocities IMMEDIATELY (no delay!)
+        // FOURTH: Apply velocities immediately
         if (velocity) {
-          // Apply impulse to give the particle its explosion velocity
-          // This matches how it worked in v2.2 when entities were freshly spawned
           if (typeof rb.applyImpulse === 'function') {
             rb.applyImpulse(velocity);
           }
           
-          // Add tiny random spin for realism
           if (angularVelocity && typeof rb.applyTorqueImpulse === 'function') {
             rb.applyTorqueImpulse(angularVelocity);
           } else if (typeof rb.applyTorqueImpulse === 'function') {
@@ -274,9 +280,6 @@ export class Particle {
             rb.applyTorqueImpulse(randomSpin);
           }
         }
-        
-        // Make visible immediately
-        this.entity.setOpacity(this.currentOpacity);
       }
     }
   }
