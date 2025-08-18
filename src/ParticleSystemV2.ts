@@ -98,8 +98,10 @@ export class ParticleSystemV2 {
       this.pool = new ParticlePool(
         options.poolSize || Math.min(100, this.maxParticles),
         defaultConfig,
-        this.entityFactory
+        this.entityFactory,
+        world // Pass world for true entity pooling
       );
+      console.log('🚀 ParticleSystem v2.3: True entity pooling enabled');
     }
     
     if (options.performance?.enableSpatialOptimization) {
@@ -145,6 +147,11 @@ export class ParticleSystemV2 {
     
     // Start particle update loop
     setInterval(() => this.updateParticles(), 16); // ~60 FPS
+    
+    // Initialize pool with world if not done in constructor
+    if (this.pool && !(this.pool as any).world) {
+      (this.pool as any).initializeWithWorld(world);
+    }
   }
   
   private registerBuiltInPatterns(): void {
@@ -309,6 +316,10 @@ export class ParticleSystemV2 {
     // Create new if no pool or pool is empty
     if (!particle) {
       particle = new Particle(config, this.entityFactory);
+      // Initialize new particle in world for true pooling
+      if (this.world) {
+        (particle as any).initializeInWorld(this.world);
+      }
     }
     
     // Allocate buffer index
