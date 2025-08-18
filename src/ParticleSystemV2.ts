@@ -247,7 +247,7 @@ export class ParticleSystemV2 {
   }
   
   private processEffectQueue(): void {
-    const maxPerFrame = 50; // Limit particles spawned per frame
+    const maxPerFrame = 200; // Increased limit for better performance with large spawns
     let spawned = 0;
     
     while (spawned < maxPerFrame && this.particles.size < this.maxParticles) {

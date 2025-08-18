@@ -33,6 +33,7 @@ export class Particle {
     private entityFactory?: (config: any) => Entity
   ) {
     this.lifetime = config.lifetime || 5000;
+    console.log('🕐 Particle lifetime set to:', this.lifetime, 'from config:', config.lifetime);
     this.spawnTime = 0;
     
     // Parse scale config
@@ -148,22 +149,23 @@ export class Particle {
     // Apply velocities after spawn if physics is enabled
     if (this.config.mass && this.config.mass > 0 && velocity) {
       
-      // Wait a tick for physics to initialize
-      setTimeout(() => {
+      // Retry logic for applying physics - important for large batches
+      let retries = 0;
+      const maxRetries = 5;
+      const retryDelay = 100;
+      
+      const tryApplyPhysics = () => {
         try {
-          // Access the raw rigid body through the entity (Hytopia API uses rawRigidBody)
           const rawRigidBody = (this.entity as any).rawRigidBody;
           if (rawRigidBody) {
-            
-            // Apply velocity directly without additional scaling
-            // (velocity is already properly scaled in the pattern generation)
+            // Successfully got rigid body, apply forces
             rawRigidBody.applyImpulse(velocity);
             
             // Apply some spin for visual effect
             if (angularVelocity) {
               rawRigidBody.applyTorqueImpulse(angularVelocity);
             } else {
-              // Add TINY random spin if none provided (was 0.2, now 0.02)
+              // Add TINY random spin if none provided
               const randomSpin = {
                 x: (Math.random() - 0.5) * 0.02,
                 y: (Math.random() - 0.5) * 0.02,
@@ -171,14 +173,22 @@ export class Particle {
               };
               rawRigidBody.applyTorqueImpulse(randomSpin);
             }
-          } else {
-            // This shouldn't happen anymore with proper rigidBodyOptions
-            console.warn('No rawRigidBody found - entity may not have physics enabled');
+          } else if (retries < maxRetries) {
+            // No rigid body yet, retry
+            retries++;
+            setTimeout(tryApplyPhysics, retryDelay);
           }
+          // Silently give up after max retries
         } catch (physicsError) {
-          console.warn('Failed to apply physics to particle:', physicsError);
+          if (retries < maxRetries) {
+            retries++;
+            setTimeout(tryApplyPhysics, retryDelay);
+          }
         }
-      }, 100); // Slightly longer delay to ensure entity is fully spawned
+      };
+      
+      // Start trying after initial delay
+      setTimeout(tryApplyPhysics, 100);
     } else {
     }
   }

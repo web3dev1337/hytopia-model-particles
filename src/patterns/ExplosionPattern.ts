@@ -8,7 +8,8 @@ export class ExplosionPattern extends Pattern {
   
   generatePoints(): Vector3Like[] {
     const points: Vector3Like[] = [];
-    const count = this.config.count || 20;
+    const count = this.count || this.config.count || 20;  // Use this.count first!
+    console.log('🔍 ExplosionPattern generatePoints using:', count);
     
     for (let i = 0; i < count; i++) {
       points.push(this.sphericalRandom((this.config.spread || 1) * 0.5));
@@ -19,7 +20,8 @@ export class ExplosionPattern extends Pattern {
 
   generateVelocities(): Vector3Like[] {
     const velocities: Vector3Like[] = [];
-    const count = this.config.count || 20;
+    const count = this.count || this.config.count || 20;  // Use this.count first!
+    console.log('🔍 ExplosionPattern generateVelocities using:', count);
     // Direct velocity scale - let the caller control the exact values
     const scale = (this.config.velocityScale || 1);
     
