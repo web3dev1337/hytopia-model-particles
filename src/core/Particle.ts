@@ -191,7 +191,19 @@ export class Particle {
     if (this.entity.isSpawned) {
       const rb = this.rigidBody || (this.entity as any).rawRigidBody;
       if (rb) {
-        // Reset velocities
+        // FIRST: Enable physics so the entity is ready
+        if (typeof rb.setEnabled === 'function') {
+          rb.setEnabled(true);
+        }
+        
+        // SECOND: Move to position after physics is enabled
+        if (typeof (this.entity as any).setPosition === 'function') {
+          (this.entity as any).setPosition(position);
+        } else if (typeof rb.setPosition === 'function') {
+          rb.setPosition(position);
+        }
+        
+        // THIRD: Reset velocities to clean state
         if (typeof rb.setLinearVelocity === 'function') {
           rb.setLinearVelocity({ x: 0, y: 0, z: 0 });
         }
@@ -199,30 +211,29 @@ export class Particle {
           rb.setAngularVelocity({ x: 0, y: 0, z: 0 });
         }
         
-        // Move to position
-        if (typeof (this.entity as any).setPosition === 'function') {
-          (this.entity as any).setPosition(position);
-        } else if (typeof rb.setPosition === 'function') {
-          rb.setPosition(position);
-        }
-        
-        // ENABLE physics for active particle
-        if (typeof rb.setEnabled === 'function') {
-          rb.setEnabled(true);
-        }
-        
-        // Make visible
-        this.entity.setOpacity(this.currentOpacity);
-        
-        // Apply velocities
-        setTimeout(() => {
-          if (velocity && rb) {
+        // FOURTH: Apply new velocities IMMEDIATELY (matching v2.2 behavior)
+        if (velocity) {
+          // Apply impulse to give the particle its explosion velocity
+          // This matches how it worked in v2.2 when entities were freshly spawned
+          if (typeof rb.applyImpulse === 'function') {
             rb.applyImpulse(velocity);
-            if (angularVelocity) {
-              rb.applyTorqueImpulse(angularVelocity);
-            }
           }
-        }, 10);
+          
+          // Add tiny random spin for realism
+          if (angularVelocity && typeof rb.applyTorqueImpulse === 'function') {
+            rb.applyTorqueImpulse(angularVelocity);
+          } else if (typeof rb.applyTorqueImpulse === 'function') {
+            const randomSpin = {
+              x: (Math.random() - 0.5) * 0.02,
+              y: (Math.random() - 0.5) * 0.02,
+              z: (Math.random() - 0.5) * 0.02
+            };
+            rb.applyTorqueImpulse(randomSpin);
+          }
+        }
+        
+        // FINALLY: Make visible
+        this.entity.setOpacity(this.currentOpacity);
       }
     }
   }
@@ -234,63 +245,6 @@ export class Particle {
     this.activate(world, position, velocity, angularVelocity);
   }
   
-  /**
-   * Move entity to position using available methods
-   */
-  private moveToPosition(position: Vector3Like, velocity?: Vector3Like): void {
-    // Try different methods to move the entity
-    
-    // Method 1: Use rigid body if available
-    if (this.rigidBody) {
-      try {
-        // For kinematic bodies
-        if (this.rigidBody.isKinematicPositionBased && this.rigidBody.isKinematicPositionBased()) {
-          this.rigidBody.setNextKinematicPosition(position);
-        } else {
-          // For dynamic bodies, temporarily make kinematic
-          const wasEnabled = this.rigidBody.isEnabled();
-          this.rigidBody.setPosition(position);
-          if (velocity) {
-            this.rigidBody.setLinearVelocity(velocity);
-          }
-        }
-        return;
-      } catch (e) {
-        console.warn('Failed to move particle via rigid body:', e);
-      }
-    }
-    
-    // Method 2: If entity has controller with move method
-    if ((this.entity as any).controller && typeof (this.entity as any).controller.move === 'function') {
-      try {
-        (this.entity as any).controller.move(position, 1000, { instant: true });
-        return;
-      } catch (e) {
-        console.warn('Failed to move particle via controller:', e);
-      }
-    }
-    
-    // Method 3: Fallback - despawn and respawn (old method)
-    // Only use this fallback if we're not in pooling mode
-    if (!this.isInitialized) {
-      console.warn('⚠️ No movement method available, falling back to respawn');
-      if (this.entity.isSpawned) {
-        this.entity.despawn();
-      }
-      const world = (this.entity as any).world;
-      if (world) {
-        this.entity.spawn(world, position);
-      }
-    } else {
-      // In pooling mode but can't move - this is a problem
-      console.error('❌ Cannot move pooled particle - entity movement not supported!');
-    }
-    
-    // Apply velocities if physics is enabled
-    if (this.config.mass && this.config.mass > 0 && velocity) {
-      this.applyPhysics(velocity, this.angularVelocity);
-    }
-  }
 
   update(): boolean {
     if (!this.isActive) return false;
@@ -421,47 +375,6 @@ export class Particle {
    */
   despawn(): void {
     this.park();
-  }
-  
-  /**
-   * Apply physics velocities
-   */
-  private applyPhysics(velocity?: Vector3Like, angularVel?: Vector3Like): void {
-    if (!velocity) return;
-    
-    const maxRetries = 5;
-    let retries = 0;
-    const retryDelay = 50;
-    
-    const tryApplyPhysics = () => {
-      try {
-        const rb = this.rigidBody || (this.entity as any).rawRigidBody;
-        if (rb) {
-          rb.applyImpulse(velocity);
-          if (angularVel) {
-            rb.applyTorqueImpulse(angularVel);
-          } else {
-            // Add tiny random spin
-            const randomSpin = {
-              x: (Math.random() - 0.5) * 0.02,
-              y: (Math.random() - 0.5) * 0.02,
-              z: (Math.random() - 0.5) * 0.02
-            };
-            rb.applyTorqueImpulse(randomSpin);
-          }
-        } else if (retries < maxRetries) {
-          retries++;
-          setTimeout(tryApplyPhysics, retryDelay);
-        }
-      } catch (e) {
-        if (retries < maxRetries) {
-          retries++;
-          setTimeout(tryApplyPhysics, retryDelay);
-        }
-      }
-    };
-    
-    setTimeout(tryApplyPhysics, 100);
   }
 
   reset(config?: Partial<ParticleConfig>): void {
