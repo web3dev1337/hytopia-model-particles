@@ -82,9 +82,11 @@ export class ParticlePool {
   acquire(config?: Partial<ParticleConfig>, position?: any, velocity?: any): Particle | null {
     // Get from pool or create new if pool is empty
     let particle = this.availableParticles.pop();
+    let fromPool = !!particle;
     
     if (!particle && this.activeParticles.size < this.poolSize * 2) {
       // Grow pool if needed
+      console.log(`🆕 Creating new particle (pool exhausted). Active: ${this.activeParticles.size}, Available: ${this.availableParticles.length}`);
       particle = new Particle(this.defaultConfig, this.entityFactory);
       
       // Initialize new particle in world if available
@@ -96,6 +98,11 @@ export class ParticlePool {
     }
     
     if (particle) {
+      // Log pool usage every 10th acquisition
+      if (this.activeParticles.size % 10 === 0) {
+        console.log(`♻️ Acquired particle (${fromPool ? 'from pool' : 'new'}). Active: ${this.activeParticles.size}, Available: ${this.availableParticles.length}`);
+      }
+      
       // Reset and configure particle
       if (config) {
         particle.reset(config);

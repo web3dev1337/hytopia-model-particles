@@ -40,7 +40,7 @@ export class Particle {
     private entityFactory?: (config: any) => Entity
   ) {
     this.lifetime = config.lifetime || 5000;
-    console.log('🕐 Particle lifetime set to:', this.lifetime, 'from config:', config.lifetime);
+    // console.log('🕐 Particle lifetime set to:', this.lifetime, 'from config:', config.lifetime);
     this.spawnTime = 0;
     
     // Parse scale config
@@ -203,12 +203,21 @@ export class Particle {
           rb.setPosition(position);
         }
         
-        // THIRD: Reset velocities to clean state
+        // THIRD: Reset velocities to clean state - FORCE reset
         if (typeof rb.setLinearVelocity === 'function') {
           rb.setLinearVelocity({ x: 0, y: 0, z: 0 });
+          rb.setLinearVelocity({ x: 0, y: 0, z: 0 }); // Double reset to ensure it takes
         }
         if (typeof rb.setAngularVelocity === 'function') {
           rb.setAngularVelocity({ x: 0, y: 0, z: 0 });
+        }
+        
+        // Also reset any accumulated forces
+        if (typeof rb.resetForces === 'function') {
+          rb.resetForces();
+        }
+        if (typeof rb.resetTorques === 'function') {
+          rb.resetTorques();
         }
         
         // FOURTH: Apply new velocities IMMEDIATELY (matching v2.2 behavior)
