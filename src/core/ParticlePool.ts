@@ -13,6 +13,9 @@ export class ParticlePool {
   private readonly growthFactor: number = 1.5;
   private totalCreated: number = 0;
   private world?: World;
+  private targetPoolSize: number = 1000; // Target 1000 pre-spawned entities
+  private spawnPerTick: number = 10; // Spawn 10 per tick
+  private isBuilding: boolean = false;
   
   constructor(
     poolSize: number = 100,
@@ -22,9 +25,10 @@ export class ParticlePool {
   ) {
     this.poolSize = poolSize;
     this.world = world;
-    // Don't pre-spawn entities - create them on demand
-    // Pre-spawning too many entities kills performance
-    this.initializePool();
+    // Start with empty pool - will build gradually
+    if (world) {
+      this.startGradualPoolBuilding();
+    }
   }
   
   /**
@@ -32,34 +36,47 @@ export class ParticlePool {
    */
   public initializeWithWorld(world: World): void {
     this.world = world;
-    if (this.availableParticles.length === 0) {
-      this.initializePool();
-    } else {
-      // Initialize any existing particles that aren't spawned yet
-      this.availableParticles.forEach(particle => {
-        (particle as any).initializeInWorld(world);
-      });
+    if (!this.isBuilding) {
+      this.startGradualPoolBuilding();
     }
   }
   
-  private initializePool(): void {
-    // Create particle wrappers and pre-spawn LIMITED number of entities
-    // We pre-spawn only 50 to avoid performance issues
-    const poolSizeLimit = Math.min(50, this.poolSize);
+  /**
+   * Gradually build the pool over time to avoid FPS drops
+   */
+  private startGradualPoolBuilding(): void {
+    if (this.isBuilding || !this.world) return;
     
-    for (let i = 0; i < poolSizeLimit; i++) {
-      const particle = new Particle(this.defaultConfig, this.entityFactory);
-      
-      // Pre-spawn in world if available (with physics disabled)
-      if (this.world) {
-        (particle as any).initializeInWorld(this.world);
+    this.isBuilding = true;
+    console.log(`🏗️ Starting gradual pool building: ${this.spawnPerTick} entities per tick, target: ${this.targetPoolSize}`);
+    
+    // Use setInterval to spawn entities gradually
+    const buildInterval = setInterval(() => {
+      if (!this.world || this.totalCreated >= this.targetPoolSize) {
+        clearInterval(buildInterval);
+        this.isBuilding = false;
+        console.log(`✅ Pool building complete: ${this.totalCreated} entities pre-spawned`);
+        return;
       }
       
-      this.availableParticles.push(particle);
-      this.totalCreated++;
-    }
-    
-    console.log(`🏊 Initialized particle pool with ${poolSizeLimit} pre-spawned entities (physics disabled when parked)`);
+      // Spawn batch of entities this tick
+      const batchSize = Math.min(this.spawnPerTick, this.targetPoolSize - this.totalCreated);
+      
+      for (let i = 0; i < batchSize; i++) {
+        const particle = new Particle(this.defaultConfig, this.entityFactory);
+        
+        // Pre-spawn with physics disabled
+        (particle as any).initializeInWorld(this.world);
+        
+        this.availableParticles.push(particle);
+        this.totalCreated++;
+      }
+      
+      // Log progress every 100 entities
+      if (this.totalCreated % 100 === 0) {
+        console.log(`🏊 Pool progress: ${this.totalCreated}/${this.targetPoolSize} entities`);
+      }
+    }, 16); // Run every tick (~16ms)
   }
   
   acquire(config?: Partial<ParticleConfig>, position?: any, velocity?: any): Particle | null {
