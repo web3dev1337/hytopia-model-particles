@@ -13,7 +13,7 @@ export class ParticlePool {
   private readonly growthFactor: number = 1.5;
   private totalCreated: number = 0;
   private world?: World;
-  private targetPoolSize: number = 200; // Reduced to 200 to avoid lag
+  private targetPoolSize: number = 50; // Further reduced to 50 for testing
   private spawnPerTick: number = 10; // Spawn 10 per tick
   private isBuilding: boolean = false;
   
