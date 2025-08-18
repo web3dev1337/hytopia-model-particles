@@ -79,19 +79,22 @@ export class ParticlePool {
     }, 16); // Run every tick (~16ms)
   }
   
-  acquire(config?: Partial<ParticleConfig>, position?: any, velocity?: any): Particle | null {
+  acquire(config?: Partial<ParticleConfig>, position?: any, velocity?: any, angularVelocity?: any): Particle | null {
     // Get from pool or create new if pool is empty
     let particle = this.availableParticles.pop();
     let fromPool = !!particle;
     
     if (!particle && this.activeParticles.size < this.poolSize * 2) {
       // Grow pool if needed
-      console.log(`🆕 Creating new particle (pool exhausted). Active: ${this.activeParticles.size}, Available: ${this.availableParticles.length}`);
+      console.log(`🆕 Creating new particle (pool exhausted at ${new Date().toISOString()}). Active: ${this.activeParticles.size}, Available: ${this.availableParticles.length}, Total created: ${this.totalCreated}`);
       particle = new Particle(this.defaultConfig, this.entityFactory);
       
       // Initialize new particle in world if available
       if (this.world) {
         (particle as any).initializeInWorld(this.world);
+        // New particles need time for physics to disable
+        // Mark them so we know to wait before activating
+        (particle as any).needsPhysicsDelay = true;
       }
       
       this.totalCreated++;
@@ -110,8 +113,22 @@ export class ParticlePool {
       
       // For true pooling, activate at position instead of spawning
       if (this.world && position) {
-        (particle as any).activate(this.world, position, velocity);
+        // Check if this is a newly created particle that needs delay
+        if ((particle as any).needsPhysicsDelay) {
+          // Mark particle as pending activation
+          (particle as any).pendingActivation = true;
+          // Wait for physics to disable before activating
+          setTimeout(() => {
+            (particle as any).activate(this.world, position, velocity, angularVelocity);
+            delete (particle as any).needsPhysicsDelay;
+            delete (particle as any).pendingActivation;
+          }, 20);
+        } else {
+          // Existing pooled particle, activate immediately
+          (particle as any).activate(this.world, position, velocity, angularVelocity);
+        }
       }
+      // If no position, particle will be activated later by ParticleSystemV2
       
       this.activeParticles.add(particle);
       return particle;
@@ -136,7 +153,15 @@ export class ParticlePool {
       // Return to pool if not over capacity
       if (this.availableParticles.length < this.poolSize * this.growthFactor) {
         this.availableParticles.push(particle);
+        // Log every 10th release
+        if (this.availableParticles.length % 10 === 0) {
+          console.log(`♾️ RELEASED particle back to pool. Now available: ${this.availableParticles.length}, Active: ${this.activeParticles.size}`);
+        }
+      } else {
+        console.warn(`⚠️ Pool over capacity! Not returning particle. Available: ${this.availableParticles.length}, Max: ${this.poolSize * this.growthFactor}`);
       }
+    } else {
+      console.warn(`⚠️ Tried to release particle not in active set!`);
     }
   }
   

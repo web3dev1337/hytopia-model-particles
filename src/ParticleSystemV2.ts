@@ -308,9 +308,9 @@ export class ParticleSystemV2 {
     
     let particle: Particle | null = null;
     
-    // Try to get from pool first
+    // Try to get from pool first - pass position and velocity for immediate activation
     if (this.pool) {
-      particle = this.pool.acquire(config);
+      particle = this.pool.acquire(config, position, velocity, angularVelocity);
     }
     
     // Create new if no pool or pool is empty
@@ -350,8 +350,20 @@ export class ParticleSystemV2 {
       };
     }
     
-    particle.spawn(this.world, position, finalVelocity, angularVelocity);
-    this.particles.set(particle, 0);
+    // Only spawn/activate if not already done by pool
+    if (!particle.active && !(particle as any).pendingActivation) {
+      particle.spawn(this.world, position, finalVelocity, angularVelocity);
+    }
+    
+    // Only add to tracking if not pending activation
+    if (!(particle as any).pendingActivation) {
+      this.particles.set(particle, 0);
+    } else {
+      // Add to tracking after activation completes
+      setTimeout(() => {
+        this.particles.set(particle, 0);
+      }, 25);
+    }
   }
   
   private updateParticles(): void {
@@ -404,6 +416,10 @@ export class ParticleSystemV2 {
       // Update particle
       if (!particle.update()) {
         toRemove.push(particle);
+        // Log first few removals
+        if (toRemove.length <= 5) {
+          console.log(`🗑️ Particle marked for removal. Total to remove this frame: ${toRemove.length}`);
+        }
       }
       
       // Update frame counter

@@ -158,22 +158,50 @@ export class Particle {
     this.entity.spawn(world, this.parkingPosition);
     this.isInitialized = true;
     
-    // IMMEDIATELY disable physics to reduce overhead
-    setTimeout(() => {
-      const rb = (this.entity as any).rawRigidBody;
-      if (rb && typeof rb.setEnabled === 'function') {
-        rb.setEnabled(false); // Disable physics when parked
-        this.rigidBody = rb;
-        
-        // Try to disable CCD if possible
-        if (typeof rb.setCcdEnabled === 'function') {
-          rb.setCcdEnabled(false);
-        }
-        if (typeof rb.enableCcd === 'function') {
-          rb.enableCcd(false);
-        }
+    // IMMEDIATELY disable physics to reduce overhead - no timeout!
+    const rb = (this.entity as any).rawRigidBody;
+    if (rb && typeof rb.setEnabled === 'function') {
+      // CRITICAL FIX: Clear velocities BEFORE disabling
+      if (typeof rb.setLinearVelocity === 'function') {
+        rb.setLinearVelocity({ x: 0, y: 0, z: 0 });
       }
-    }, 50);
+      if (typeof rb.setAngularVelocity === 'function') {
+        rb.setAngularVelocity({ x: 0, y: 0, z: 0 });
+      }
+      if (typeof rb.setGravityScale === 'function') {
+        rb.setGravityScale(0); // No gravity when parked
+      }
+      
+      rb.setEnabled(false); // Disable physics when parked
+      this.rigidBody = rb;
+      
+      // Try to disable CCD if possible
+      if (typeof rb.setCcdEnabled === 'function') {
+        rb.setCcdEnabled(false);
+      }
+      if (typeof rb.enableCcd === 'function') {
+        rb.enableCcd(false);
+      }
+    } else {
+      // If rigidBody not available immediately, try again shortly
+      setTimeout(() => {
+        const rb = (this.entity as any).rawRigidBody;
+        if (rb && typeof rb.setEnabled === 'function') {
+          // Clear velocities before disabling
+          if (typeof rb.setLinearVelocity === 'function') {
+            rb.setLinearVelocity({ x: 0, y: 0, z: 0 });
+          }
+          if (typeof rb.setAngularVelocity === 'function') {
+            rb.setAngularVelocity({ x: 0, y: 0, z: 0 });
+          }
+          if (typeof rb.setGravityScale === 'function') {
+            rb.setGravityScale(0);
+          }
+          rb.setEnabled(false);
+          this.rigidBody = rb;
+        }
+      }, 10);
+    }
     
     // Hide immediately
     this.entity.setOpacity(0.0);
@@ -219,67 +247,90 @@ export class Particle {
         if (typeof rb.isEnabled === 'function' && rb.isEnabled()) {
           console.warn('⚠️ Physics was still enabled when activating particle!');
           rb.setEnabled(false);
-        }
-        
-        // FIRST: Move to position WITH PHYSICS DISABLED
-        if (typeof (this.entity as any).setPosition === 'function') {
-          (this.entity as any).setPosition(position);
-        } else if (typeof rb.setPosition === 'function') {
-          rb.setPosition(position);
-        }
-        
-        // Make visible immediately
-        this.entity.setOpacity(this.currentOpacity);
-        
-        // SECOND: Reset all physics state
-        if (typeof rb.setGravityScale === 'function') {
-          rb.setGravityScale(1.0);
-        }
-        if (typeof rb.setLinearDamping === 'function') {
-          rb.setLinearDamping(0.0);
-        }
-        if (typeof rb.setAngularDamping === 'function') {
-          rb.setAngularDamping(0.0);
-        }
-        
-        // Reset velocities
-        if (typeof rb.setLinearVelocity === 'function') {
-          rb.setLinearVelocity({ x: 0, y: 0, z: 0 });
-        }
-        if (typeof rb.setAngularVelocity === 'function') {
-          rb.setAngularVelocity({ x: 0, y: 0, z: 0 });
-        }
-        
-        // Reset forces
-        if (typeof rb.resetForces === 'function') {
-          rb.resetForces();
-        }
-        if (typeof rb.resetTorques === 'function') {
-          rb.resetTorques();
-        }
-        
-        // THIRD: Re-enable physics AFTER position and state are reset
-        if (typeof rb.setEnabled === 'function') {
-          rb.setEnabled(true);
-        }
-        
-        // FOURTH: Apply velocities immediately
-        if (velocity) {
-          if (typeof rb.applyImpulse === 'function') {
-            rb.applyImpulse(velocity);
-          }
           
-          if (angularVelocity && typeof rb.applyTorqueImpulse === 'function') {
-            rb.applyTorqueImpulse(angularVelocity);
-          } else if (typeof rb.applyTorqueImpulse === 'function') {
-            const randomSpin = {
-              x: (Math.random() - 0.5) * 0.02,
-              y: (Math.random() - 0.5) * 0.02,
-              z: (Math.random() - 0.5) * 0.02
-            };
-            rb.applyTorqueImpulse(randomSpin);
-          }
+          // CRITICAL: Wait for physics to actually disable before moving
+          setTimeout(() => {
+            this.performActivation(position, velocity, angularVelocity, rb);
+          }, 10);
+          return;
         }
+        
+        // Physics is already disabled, safe to move
+        this.performActivation(position, velocity, angularVelocity, rb);
+      }
+    }
+  }
+  
+  private performActivation(position: Vector3Like, velocity?: Vector3Like, angularVelocity?: Vector3Like, rb?: any): void {
+    // CRITICAL: Set spawn time and active state
+    this.isActive = true;
+    this.spawnTime = Date.now();
+    this.velocity = velocity;
+    this.angularVelocity = angularVelocity;
+    
+    // Debug log for first particle
+    if (this.particleId === 0) {
+      console.log(`🚀 P#0 DELAYED ACTIVATION at position:`, position, `with velocity:`, velocity);
+    }
+    
+    // CRITICAL FIX: Ensure ALL velocities and forces are cleared BEFORE moving
+    if (rb) {
+      // Clear any residual velocities from previous life
+      if (typeof rb.setLinearVelocity === 'function') {
+        rb.setLinearVelocity({ x: 0, y: 0, z: 0 });
+      }
+      if (typeof rb.setAngularVelocity === 'function') {
+        rb.setAngularVelocity({ x: 0, y: 0, z: 0 });
+      }
+      if (typeof rb.resetForces === 'function') {
+        rb.resetForces();
+      }
+      if (typeof rb.resetTorques === 'function') {
+        rb.resetTorques();
+      }
+    }
+    
+    // Move to position WITH PHYSICS DISABLED
+    if (typeof (this.entity as any).setPosition === 'function') {
+      (this.entity as any).setPosition(position);
+    } else if (rb && typeof rb.setPosition === 'function') {
+      rb.setPosition(position);
+    }
+    
+    // Make visible
+    this.entity.setOpacity(this.currentOpacity);
+    
+    if (rb) {
+      // Reset ALL physics state to defaults
+      if (typeof rb.setGravityScale === 'function') {
+        rb.setGravityScale(this.config.useGravity !== false ? 1.0 : 0.0);
+      }
+      if (typeof rb.setLinearDamping === 'function') {
+        rb.setLinearDamping(0.0); // Use default damping
+      }
+      if (typeof rb.setAngularDamping === 'function') {
+        rb.setAngularDamping(0.0); // Use default damping
+      }
+      
+      // Re-enable physics AFTER position is set and velocities cleared
+      if (typeof rb.setEnabled === 'function') {
+        rb.setEnabled(true);
+      }
+      
+      // Apply initial velocities AFTER physics is enabled
+      if (velocity && typeof rb.applyImpulse === 'function') {
+        rb.applyImpulse(velocity);
+      }
+      
+      if (angularVelocity && typeof rb.applyTorqueImpulse === 'function') {
+        rb.applyTorqueImpulse(angularVelocity);
+      } else if (typeof rb.applyTorqueImpulse === 'function') {
+        const randomSpin = {
+          x: (Math.random() - 0.5) * 0.02,
+          y: (Math.random() - 0.5) * 0.02,
+          z: (Math.random() - 0.5) * 0.02
+        };
+        rb.applyTorqueImpulse(randomSpin);
       }
     }
   }
@@ -300,6 +351,10 @@ export class Particle {
     
     const elapsed = Date.now() - this.spawnTime;
     if (elapsed >= this.lifetime) {
+      // Log when particles expire
+      if (this.particleId < 5) {
+        console.log(`⏰ P#${this.particleId} EXPIRED after ${elapsed}ms (lifetime: ${this.lifetime}ms)`);
+      }
       this.despawn();
       return false;
     }
@@ -388,18 +443,14 @@ export class Particle {
     
     // Debug log for first particle
     if (this.particleId === 0) {
-      console.log(`🏁 P#0 PARKING back to underground position`);
+      console.log(`🏁 P#0 PARKING back to underground position at time: ${Date.now() - this.spawnTime}ms after spawn`);
     }
     
     if (this.entity.isSpawned) {
       const rb = this.rigidBody || (this.entity as any).rawRigidBody;
       if (rb) {
-        // FIRST: Disable physics BEFORE moving to avoid CCD issues
-        if (typeof rb.setEnabled === 'function') {
-          rb.setEnabled(false);
-        }
-        
-        // SECOND: Reset velocities after physics is disabled
+        // CRITICAL FIX: Clear ALL velocities and forces BEFORE disabling physics
+        // This prevents velocity from accumulating while physics is disabled
         if (typeof rb.setLinearVelocity === 'function') {
           rb.setLinearVelocity({ x: 0, y: 0, z: 0 });
         }
@@ -407,23 +458,47 @@ export class Particle {
           rb.setAngularVelocity({ x: 0, y: 0, z: 0 });
         }
         
-        // Reset forces too
+        // Reset forces BEFORE disabling
         if (typeof rb.resetForces === 'function') {
           rb.resetForces();
         }
         if (typeof rb.resetTorques === 'function') {
           rb.resetTorques();
         }
+        
+        // Reset acceleration if it exists
+        if (typeof rb.setLinearAcceleration === 'function') {
+          rb.setLinearAcceleration({ x: 0, y: 0, z: 0 });
+        }
+        if (typeof rb.setAngularAcceleration === 'function') {
+          rb.setAngularAcceleration({ x: 0, y: 0, z: 0 });
+        }
+        
+        // Set gravity scale to 0 to prevent further falling
+        if (typeof rb.setGravityScale === 'function') {
+          rb.setGravityScale(0);
+        }
+        
+        // NOW disable physics after clearing everything
+        if (typeof rb.setEnabled === 'function') {
+          rb.setEnabled(false);
+        }
       }
       
-      // THIRD: Move to parking position AFTER physics is disabled
+      // Move to parking position AFTER physics is disabled
       if (typeof (this.entity as any).setPosition === 'function') {
         (this.entity as any).setPosition(this.parkingPosition);
+      } else if (rb && typeof rb.setPosition === 'function') {
+        rb.setPosition(this.parkingPosition);
       }
       
       // Hide
       this.entity.setOpacity(0.0);
     }
+    
+    // Clear internal velocity tracking
+    this.velocity = undefined;
+    this.angularVelocity = undefined;
     
     // Clear cached position
     this._cachedPosition = undefined;
@@ -439,6 +514,11 @@ export class Particle {
   reset(config?: Partial<ParticleConfig>): void {
     if (config) {
       Object.assign(this.config, config);
+      
+      // Update lifetime if provided in new config
+      if (config.lifetime !== undefined) {
+        this.lifetime = config.lifetime;
+      }
       
       // For pooling, we don't recreate entities - just update config
       // The next activation will use the new config
