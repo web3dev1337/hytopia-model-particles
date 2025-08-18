@@ -461,21 +461,14 @@ export class Particle {
     if (config) {
       Object.assign(this.config, config);
       
-      // If significant changes, recreate entity
-      if ((config.modelUri && config.modelUri !== this.entity.modelUri) || 
-          config.mass !== undefined || config.friction !== undefined || 
-          config.bounciness !== undefined || config.useGravity !== undefined) {
-        
-        // Only despawn if spawned
-        if (this.entity.isSpawned) {
-          this.entity.despawn();
-        }
-        
-        // Recreate entity with new config
-        // ... (entity creation code same as constructor)
-      }
+      // For pooling, we don't recreate entities - just update config
+      // The next activation will use the new config
+      // This avoids despawn/respawn which defeats pooling
     }
     this.isActive = false;
+    
+    // Clear cached position
+    this._cachedPosition = undefined;
   }
 
   get active(): boolean {
