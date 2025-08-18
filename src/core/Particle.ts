@@ -233,52 +233,47 @@ export class Particle {
           rb.setAngularDamping(0.0); // Reset angular damping
         }
         
-        // THIRD: Enable physics AFTER position is set to avoid CCD tunneling
+        // THIRD: Reset velocities BEFORE enabling physics
+        if (typeof rb.setLinearVelocity === 'function') {
+          rb.setLinearVelocity({ x: 0, y: 0, z: 0 });
+        }
+        if (typeof rb.setAngularVelocity === 'function') {
+          rb.setAngularVelocity({ x: 0, y: 0, z: 0 });
+        }
+        
+        // Also reset any accumulated forces
+        if (typeof rb.resetForces === 'function') {
+          rb.resetForces();
+        }
+        if (typeof rb.resetTorques === 'function') {
+          rb.resetTorques();
+        }
+        
+        // FOURTH: Enable physics AFTER resetting velocities
         if (typeof rb.setEnabled === 'function') {
           rb.setEnabled(true);
         }
         
-        // FOURTH: Let physics settle for one frame
-        setTimeout(() => {
-          if (!rb || !this.isActive) return;
-          
-          // Reset velocities to clean state - FORCE reset
-          if (typeof rb.setLinearVelocity === 'function') {
-            rb.setLinearVelocity({ x: 0, y: 0, z: 0 });
-          }
-          if (typeof rb.setAngularVelocity === 'function') {
-            rb.setAngularVelocity({ x: 0, y: 0, z: 0 });
+        // FIFTH: Apply new velocities IMMEDIATELY (no delay!)
+        if (velocity) {
+          // Apply impulse to give the particle its explosion velocity
+          // This matches how it worked in v2.2 when entities were freshly spawned
+          if (typeof rb.applyImpulse === 'function') {
+            rb.applyImpulse(velocity);
           }
           
-          // Also reset any accumulated forces
-          if (typeof rb.resetForces === 'function') {
-            rb.resetForces();
+          // Add tiny random spin for realism
+          if (angularVelocity && typeof rb.applyTorqueImpulse === 'function') {
+            rb.applyTorqueImpulse(angularVelocity);
+          } else if (typeof rb.applyTorqueImpulse === 'function') {
+            const randomSpin = {
+              x: (Math.random() - 0.5) * 0.02,
+              y: (Math.random() - 0.5) * 0.02,
+              z: (Math.random() - 0.5) * 0.02
+            };
+            rb.applyTorqueImpulse(randomSpin);
           }
-          if (typeof rb.resetTorques === 'function') {
-            rb.resetTorques();
-          }
-          
-          // FIFTH: Apply new velocities after reset
-          if (velocity) {
-            // Apply impulse to give the particle its explosion velocity
-            // This matches how it worked in v2.2 when entities were freshly spawned
-            if (typeof rb.applyImpulse === 'function') {
-              rb.applyImpulse(velocity);
-            }
-            
-            // Add tiny random spin for realism
-            if (angularVelocity && typeof rb.applyTorqueImpulse === 'function') {
-              rb.applyTorqueImpulse(angularVelocity);
-            } else if (typeof rb.applyTorqueImpulse === 'function') {
-              const randomSpin = {
-                x: (Math.random() - 0.5) * 0.02,
-                y: (Math.random() - 0.5) * 0.02,
-                z: (Math.random() - 0.5) * 0.02
-              };
-              rb.applyTorqueImpulse(randomSpin);
-            }
-          }
-        }, 16); // Wait one frame for physics to settle
+        }
         
         // Make visible immediately
         this.entity.setOpacity(this.currentOpacity);
