@@ -20,6 +20,10 @@ export class Particle {
   private rigidBody?: any; // Reference to entity's rigid body
   private _cachedPosition?: Vector3Like; // Cache position to avoid Rust aliasing
   
+  // Debug tracking
+  private static debugParticleId: number = 0;
+  private particleId: number;
+  
   // Animation properties
   private animations?: ParticleAnimations;
   private baseScale: number;
@@ -41,6 +45,14 @@ export class Particle {
     this.lifetime = config.lifetime || 5000;
     // console.log('🕐 Particle lifetime set to:', this.lifetime, 'from config:', config.lifetime);
     this.spawnTime = 0;
+    
+    // Assign unique ID for tracking
+    this.particleId = Particle.debugParticleId++;
+    
+    // Start debug tracking for first particle
+    if (this.particleId === 0) {
+      this.startDebugTracking();
+    }
     
     // Parse scale config
     if (typeof config.modelScale === 'object') {
@@ -185,6 +197,11 @@ export class Particle {
     this.spawnTime = Date.now();
     this.velocity = velocity;
     this.angularVelocity = angularVelocity;
+    
+    // Debug log for first particle
+    if (this.particleId === 0) {
+      console.log(`🚀 P#0 ACTIVATING at position:`, position, `with velocity:`, velocity);
+    }
     
     // Reset animation state
     this.currentScale = this.baseScale;
@@ -357,6 +374,11 @@ export class Particle {
     
     this.isActive = false;
     
+    // Debug log for first particle
+    if (this.particleId === 0) {
+      console.log(`🏁 P#0 PARKING back to underground position`);
+    }
+    
     if (this.entity.isSpawned) {
       const rb = this.rigidBody || (this.entity as any).rawRigidBody;
       if (rb) {
@@ -441,5 +463,47 @@ export class Particle {
     if (!this.isActive) return 0;
     const elapsed = Date.now() - this.spawnTime;
     return Math.min(elapsed / this.lifetime, 1);
+  }
+  
+  /**
+   * Debug tracking for first particle
+   */
+  private debugTrackingInterval?: NodeJS.Timeout;
+  
+  private startDebugTracking(): void {
+    console.log('🔍 Starting debug tracking for Particle #0');
+    
+    // Track every 250ms
+    this.debugTrackingInterval = setInterval(() => {
+      if (!this.entity || !this.entity.isSpawned) return;
+      
+      const rb = this.rigidBody || (this.entity as any).rawRigidBody;
+      if (!rb) return;
+      
+      // Get current state
+      const pos = this.entity.position || { x: 0, y: 0, z: 0 };
+      const linearVel = rb.linearVelocity || { x: 0, y: 0, z: 0 };
+      const angularVel = rb.angularVelocity || { x: 0, y: 0, z: 0 };
+      const isEnabled = rb.isEnabled ? rb.isEnabled() : false;
+      const isCcd = rb.isCcdEnabled ? rb.isCcdEnabled() : false;
+      
+      // Calculate velocity magnitude
+      const velMagnitude = Math.sqrt(linearVel.x ** 2 + linearVel.y ** 2 + linearVel.z ** 2);
+      
+      console.log(`📍 P#0 [${this.isActive ? 'ACTIVE' : 'PARKED'}]`, {
+        pos: `(${pos.x.toFixed(1)}, ${pos.y.toFixed(1)}, ${pos.z.toFixed(1)})`,
+        vel: `(${linearVel.x.toFixed(2)}, ${linearVel.y.toFixed(2)}, ${linearVel.z.toFixed(2)}) mag=${velMagnitude.toFixed(2)}`,
+        angVel: `(${angularVel.x.toFixed(2)}, ${angularVel.y.toFixed(2)}, ${angularVel.z.toFixed(2)})`,
+        physics: isEnabled ? 'ON' : 'OFF',
+        ccd: isCcd ? 'ON' : 'OFF'
+      });
+    }, 250); // Every 250ms
+  }
+  
+  private stopDebugTracking(): void {
+    if (this.debugTrackingInterval) {
+      clearInterval(this.debugTrackingInterval);
+      this.debugTrackingInterval = undefined;
+    }
   }
 }
