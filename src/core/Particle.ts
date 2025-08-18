@@ -500,10 +500,10 @@ export class Particle {
       const angularVel = rb.angularVelocity || { x: 0, y: 0, z: 0 };
       const isEnabled = rb.isEnabled ? rb.isEnabled() : false;
       const isCcd = rb.isCcdEnabled ? rb.isCcdEnabled() : false;
-      const mass = rb.mass || 0;
-      const gravityScale = rb.gravityScale || 1;
-      const linearDamping = rb.linearDamping || 0;
-      const angularDamping = rb.angularDamping || 0;
+      const mass = typeof rb.mass === 'number' ? rb.mass : 'N/A';
+      const gravityScale = typeof rb.gravityScale === 'number' ? rb.gravityScale : 'N/A';
+      const linearDamping = typeof rb.linearDamping === 'number' ? rb.linearDamping : 'N/A';
+      const angularDamping = typeof rb.angularDamping === 'number' ? rb.angularDamping : 'N/A';
       const isSleeping = rb.isSleeping ? rb.isSleeping() : false;
       const isMoving = rb.isMoving ? rb.isMoving() : false;
       
@@ -516,10 +516,10 @@ export class Particle {
         angVel: `(${angularVel.x.toFixed(2)}, ${angularVel.y.toFixed(2)}, ${angularVel.z.toFixed(2)})`,
         physics: isEnabled ? 'ON' : 'OFF',
         ccd: isCcd ? 'ON' : 'OFF',
-        mass: mass.toFixed(2),
-        gravityScale: gravityScale.toFixed(2),
-        linearDamping: linearDamping.toFixed(2),
-        angularDamping: angularDamping.toFixed(2),
+        mass: typeof mass === 'number' ? mass.toFixed(2) : mass,
+        gravityScale: typeof gravityScale === 'number' ? gravityScale.toFixed(2) : gravityScale,
+        linearDamping: typeof linearDamping === 'number' ? linearDamping.toFixed(2) : linearDamping,
+        angularDamping: typeof angularDamping === 'number' ? angularDamping.toFixed(2) : angularDamping,
         sleeping: isSleeping ? 'YES' : 'NO',
         moving: isMoving ? 'YES' : 'NO'
       });
