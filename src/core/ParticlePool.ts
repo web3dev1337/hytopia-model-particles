@@ -22,9 +22,9 @@ export class ParticlePool {
   ) {
     this.poolSize = poolSize;
     this.world = world;
-    if (world) {
-      this.initializePool(world);
-    }
+    // Don't pre-spawn entities - create them on demand
+    // Pre-spawning too many entities kills performance
+    this.initializePool();
   }
   
   /**
@@ -33,7 +33,7 @@ export class ParticlePool {
   public initializeWithWorld(world: World): void {
     this.world = world;
     if (this.availableParticles.length === 0) {
-      this.initializePool(world);
+      this.initializePool();
     } else {
       // Initialize any existing particles that aren't spawned yet
       this.availableParticles.forEach(particle => {
@@ -42,23 +42,16 @@ export class ParticlePool {
     }
   }
   
-  private initializePool(world?: World): void {
-    // Pre-create particles for the pool
-    for (let i = 0; i < this.poolSize; i++) {
+  private initializePool(): void {
+    // Create particle wrappers but don't spawn entities yet
+    // We'll spawn on demand to avoid performance issues
+    for (let i = 0; i < Math.min(20, this.poolSize); i++) {
       const particle = new Particle(this.defaultConfig, this.entityFactory);
-      
-      // Initialize in world if available (true pooling)
-      if (world) {
-        (particle as any).initializeInWorld(world);
-      }
-      
       this.availableParticles.push(particle);
       this.totalCreated++;
     }
     
-    if (world) {
-      console.log(`🏊 Initialized particle pool with ${this.poolSize} pre-spawned entities`);
-    }
+    console.log(`🏊 Initialized particle pool with ${Math.min(20, this.poolSize)} particle wrappers (entities spawn on demand)`);
   }
   
   acquire(config?: Partial<ParticleConfig>, position?: any, velocity?: any): Particle | null {

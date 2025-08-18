@@ -142,36 +142,16 @@ export class Particle {
   initializeInWorld(world: World): void {
     if (this.isInitialized) return;
     
-    // Spawn entity at parking position
-    this.entity.spawn(world, this.parkingPosition);
+    // Mark as initialized but don't spawn yet
+    // We'll spawn when needed to avoid having too many entities
     this.isInitialized = true;
-    
-    // Hide immediately
-    this.entity.setOpacity(0.0);
-    
-    // Try to get rigid body reference after spawn
-    setTimeout(() => {
-      if ((this.entity as any).rawRigidBody) {
-        this.rigidBody = (this.entity as any).rawRigidBody;
-      }
-    }, 50);
-    
-    console.log('🏊 Particle spawned at parking position for pooling');
   }
   
   /**
-   * Activate particle at position (for pooling)
+   * Activate particle at position (hybrid pooling)
    */
   activate(world: World, position: Vector3Like, velocity?: Vector3Like, angularVelocity?: Vector3Like): void {
     if (this.isActive) return;
-    
-    // Initialize if not already done
-    if (!this.isInitialized) {
-      this.initializeInWorld(world);
-      // Wait a bit for spawn to complete
-      setTimeout(() => this.activate(world, position, velocity, angularVelocity), 100);
-      return;
-    }
     
     this.isActive = true;
     this.spawnTime = Date.now();
@@ -184,39 +164,20 @@ export class Particle {
     this.currentColor = { ...this.baseColor };
     this.currentOpacity = this.animations?.opacityOverTime?.start || 1;
     
-    // Use setPosition to move entity - THIS IS THE KEY!
-    if (this.entity.isSpawned && typeof (this.entity as any).setPosition === 'function') {
-      // Reset physics state first
-      if (typeof (this.entity as any).setLinearVelocity === 'function') {
-        (this.entity as any).setLinearVelocity({ x: 0, y: 0, z: 0 });
-      }
-      if (typeof (this.entity as any).setAngularVelocity === 'function') {
-        (this.entity as any).setAngularVelocity({ x: 0, y: 0, z: 0 });
-      }
-      
-      // Move to position
-      (this.entity as any).setPosition(position);
-      
-      // Update cached position
-      this._cachedPosition = { ...position };
-      
-      // Make visible
-      this.entity.setOpacity(this.currentOpacity);
-      
-      // Apply new physics
-      if (velocity) {
-        this.applyPhysics(velocity, angularVelocity);
-      }
-    } else {
-      // Fallback if not spawned or no setPosition
-      if (this.entity.isSpawned) {
-        this.entity.despawn();
-      }
-      this.entity.spawn(world, position);
-      
-      if (velocity) {
-        this.applyPhysics(velocity, angularVelocity);
-      }
+    // Update cached position
+    this._cachedPosition = { ...position };
+    
+    // Hybrid approach: spawn/despawn for performance
+    // Keeping too many entities spawned kills FPS
+    if (this.entity.isSpawned) {
+      this.entity.despawn();
+    }
+    
+    this.entity.spawn(world, position);
+    
+    // Apply physics after spawn
+    if (velocity) {
+      this.applyPhysics(velocity, angularVelocity);
     }
   }
   
@@ -372,48 +333,28 @@ export class Particle {
   }
 
   /**
-   * Park the particle (for pooling) - moves to parking spot
+   * Park the particle (hybrid pooling) - despawns for performance
    */
   park(): void {
     if (!this.isActive) return;
     
     this.isActive = false;
     
-    if (this.entity.isSpawned && typeof (this.entity as any).setPosition === 'function') {
-      // Reset velocities
-      if (typeof (this.entity as any).setLinearVelocity === 'function') {
-        (this.entity as any).setLinearVelocity({ x: 0, y: 0, z: 0 });
-      }
-      if (typeof (this.entity as any).setAngularVelocity === 'function') {
-        (this.entity as any).setAngularVelocity({ x: 0, y: 0, z: 0 });
-      }
-      
-      // Move to parking position
-      (this.entity as any).setPosition(this.parkingPosition);
-      
-      // Update cached position
-      this._cachedPosition = { ...this.parkingPosition };
-      
-      // Hide
-      this.entity.setOpacity(0.0);
+    // Despawn to save performance
+    // Having too many entities spawned kills FPS
+    if (this.entity.isSpawned) {
+      this.entity.despawn();
     }
+    
+    // Clear cached position
+    this._cachedPosition = undefined;
   }
   
   /**
-   * Old despawn method - now parks instead for pooling
+   * Despawn method - parks the particle
    */
   despawn(): void {
-    // If entity is spawned, park it; otherwise actually despawn
-    if (this.entity.isSpawned && this.isInitialized) {
-      this.park();
-    } else if (this.entity.isSpawned) {
-      // Fallback to actual despawn if not initialized for pooling
-      this.isActive = false;
-      this.entity.despawn();
-    } else {
-      // Entity not spawned, just mark inactive
-      this.isActive = false;
-    }
+    this.park();
   }
   
   /**
