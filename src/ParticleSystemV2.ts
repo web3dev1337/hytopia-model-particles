@@ -45,7 +45,7 @@ export class ParticleSystemV2 {
   private readonly DEFAULT_EFFECTS: Record<string, Partial<ParticleEffect>> = {
     explosion: {
       config: {
-        modelUri: 'models/gold-nugget.gltf',
+        modelUri: 'models/items/gold-nugget.gltf',
         modelScale: 0.3,
         lifetime: 1500,
         mass: 0.1,
@@ -57,7 +57,7 @@ export class ParticleSystemV2 {
     },
     spark: {
       config: {
-        modelUri: 'models/gold-nugget.gltf',
+        modelUri: 'models/items/gold-nugget.gltf',
         modelScale: 0.1,
         lifetime: 800,
         tintColor: { r: 255, g: 200, b: 100 }
@@ -66,7 +66,7 @@ export class ParticleSystemV2 {
     },
     smoke: {
       config: {
-        modelUri: 'models/gold-nugget.gltf',
+        modelUri: 'models/items/gold-nugget.gltf',
         modelScale: { start: 0.2, end: 0.8 },
         lifetime: 2000,
         opacity: { start: 0.8, end: 0 },
@@ -91,7 +91,7 @@ export class ParticleSystemV2 {
     // Initialize v2.2 systems based on options
     if (options.poolSize || options.performance?.enablePooling !== false) {
       const defaultConfig: ParticleConfig = {
-        modelUri: 'models/gold-nugget.gltf',
+        modelUri: 'models/items/gold-nugget.gltf',
         modelScale: 0.3,
         lifetime: 2000
       };
@@ -148,7 +148,7 @@ export class ParticleSystemV2 {
   }
   
   private registerBuiltInPatterns(): void {
-    this.patternRegistry.register('explosion', new ExplosionPattern());
+    this.patternRegistry.register('explosion', new ExplosionPattern({}));
     this.patternRegistry.register('stream', new StreamPattern());
     this.patternRegistry.register('spiral', new SpiralPattern());
     this.patternRegistry.register('wave', new WavePattern());
@@ -184,6 +184,7 @@ export class ParticleSystemV2 {
    * Quick effect registration with minimal config
    */
   quickEffect(name: string, options: {
+    modelUri?: string;
     model?: string;
     count?: number;
     pattern?: string;
@@ -193,7 +194,7 @@ export class ParticleSystemV2 {
     const effect: ParticleEffect = {
       name,
       config: {
-        modelUri: options.model === 'default' ? 'models/gold-nugget.gltf' : (options.model || 'models/gold-nugget.gltf'),
+        modelUri: options.modelUri || (options.model === 'default' ? 'models/items/gold-nugget.gltf' : (options.model || 'models/items/gold-nugget.gltf')),
         modelScale: options.scale || 0.3,
         lifetime: options.lifetime || 2000
       },
@@ -268,6 +269,7 @@ export class ParticleSystemV2 {
     
     if (!pattern) return;
     
+    
     const particles = pattern.generate(
       effect.config,
       position,
@@ -279,7 +281,7 @@ export class ParticleSystemV2 {
       }
     );
     
-    particles.forEach(particleData => {
+    particles.forEach((particleData, index) => {
       this.spawnParticle(
         particleData.config,
         particleData.position,
@@ -374,7 +376,7 @@ export class ParticleSystemV2 {
         if (isPhysicsEnabled && particle.position) {
           const forces = this.physicsForces.calculateForces(particle.position);
           const entity = (particle as any).entity;
-          if (entity && entity.isSpawned && forces.x !== 0 || forces.y !== 0 || forces.z !== 0) {
+          if (entity && entity.isSpawned && (forces.x !== 0 || forces.y !== 0 || forces.z !== 0)) {
             try {
               entity.applyImpulse({
                 x: forces.x * 0.016, // Delta time approximation

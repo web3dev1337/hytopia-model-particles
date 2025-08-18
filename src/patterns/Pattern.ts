@@ -39,6 +39,7 @@ export abstract class Pattern {
     velocity?: Vector3Like;
     angularVelocity?: Vector3Like;
   }> {
+    
     this.count = count;
     if (options) {
       this.applyModifiers(options);
@@ -47,7 +48,7 @@ export abstract class Pattern {
     const points = this.generatePoints();
     const velocities = this.generateVelocities();
     
-    return points.map((point, i) => ({
+    const result = points.map((point, i) => ({
       config,
       position: {
         x: position.x + point.x,
@@ -57,6 +58,9 @@ export abstract class Pattern {
       velocity: velocities[i],
       angularVelocity: this.generateAngularVelocity ? this.generateAngularVelocity() : undefined
     }));
+    
+    
+    return result;
   }
   
   protected generateAngularVelocity?(): Vector3Like;

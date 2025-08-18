@@ -2,6 +2,10 @@ import type { Vector3Like } from 'hytopia';
 import { Pattern } from './Pattern';
 
 export class ExplosionPattern extends Pattern {
+  constructor(config: any) {
+    super(config);
+  }
+  
   generatePoints(): Vector3Like[] {
     const points: Vector3Like[] = [];
     const count = this.config.count || 20;
@@ -16,17 +20,27 @@ export class ExplosionPattern extends Pattern {
   generateVelocities(): Vector3Like[] {
     const velocities: Vector3Like[] = [];
     const count = this.config.count || 20;
-    const scale = (this.config.velocityScale || 1) * 10;
+    // Direct velocity scale - let the caller control the exact values
+    const scale = (this.config.velocityScale || 1);
     
     for (let i = 0; i < count; i++) {
       const direction = this.sphericalRandom(1);
-      const speed = scale * (0.5 + Math.random() * 0.5);
+      const speedVariation = 0.7 + Math.random() * 0.2; // 0.7 to 0.9 like current system
+      const speed = scale * speedVariation;
       
-      velocities.push({
-        x: direction.x * speed,
-        y: direction.y * speed + scale * 0.5, // Add upward bias
-        z: direction.z * speed
-      });
+      // CALCULATE STEP BY STEP TO SEE WHERE IT GOES WRONG
+      const baseSpeed = speedVariation;  // 0.7 to 0.9
+      const scaledSpeed = scale * speedVariation;  // should be 0.01 * (0.7-0.9) = 0.007-0.009
+      const impulseScale = 0.0001;
+      const finalSpeed = scaledSpeed * impulseScale;  // should be 0.000001
+      
+      const velocity = {
+        x: direction.x * finalSpeed,
+        y: direction.y * finalSpeed,
+        z: direction.z * finalSpeed
+      };
+      
+      velocities.push(velocity);
     }
     
     return velocities;

@@ -100,18 +100,17 @@ export class Particle {
       opacity: this.currentOpacity
     };
     
-    // Add physics if configured
+    // Add physics if configured (matching current codebase pattern)
     if (config.mass && config.mass > 0) {
       entityConfig.rigidBodyOptions = {
         type: RigidBodyType.DYNAMIC,
-        mass: config.mass,
-        friction: config.friction || 0.5,
-        restitution: config.bounciness || 0.2,
-        gravityScale: config.gravityScale ?? (config.useGravity !== false ? 1 : 0),
         colliders: [
           {
             shape: ColliderShape.BALL,
             radius: 0.1 * this.currentScale,
+            mass: config.mass,
+            friction: config.friction || 0.5,
+            bounciness: config.bounciness || 0.2,
             collisionGroups: {
               belongsTo: [config.collisionGroup || CollisionGroup.GROUP_2],
               collidesWith: [config.collisionMask || CollisionGroup.BLOCK]
@@ -132,6 +131,7 @@ export class Particle {
   spawn(world: World, position: Vector3Like, velocity?: Vector3Like, angularVelocity?: Vector3Like): void {
     if (this.isActive) return;
     
+    
     this.isActive = true;
     this.spawnTime = Date.now();
     this.velocity = velocity;
@@ -146,20 +146,40 @@ export class Particle {
     this.entity.spawn(world, position);
     
     // Apply velocities after spawn if physics is enabled
-    if (this.config.mass && this.config.mass > 0) {
-      try {
-        // Apply initial velocity if provided
-        if (velocity) {
-          this.entity.applyImpulse(velocity);
+    if (this.config.mass && this.config.mass > 0 && velocity) {
+      
+      // Wait a tick for physics to initialize
+      setTimeout(() => {
+        try {
+          // Access the raw rigid body through the entity (Hytopia API uses rawRigidBody)
+          const rawRigidBody = (this.entity as any).rawRigidBody;
+          if (rawRigidBody) {
+            
+            // Apply velocity directly without additional scaling
+            // (velocity is already properly scaled in the pattern generation)
+            rawRigidBody.applyImpulse(velocity);
+            
+            // Apply some spin for visual effect
+            if (angularVelocity) {
+              rawRigidBody.applyTorqueImpulse(angularVelocity);
+            } else {
+              // Add TINY random spin if none provided (was 0.2, now 0.02)
+              const randomSpin = {
+                x: (Math.random() - 0.5) * 0.02,
+                y: (Math.random() - 0.5) * 0.02,
+                z: (Math.random() - 0.5) * 0.02
+              };
+              rawRigidBody.applyTorqueImpulse(randomSpin);
+            }
+          } else {
+            // This shouldn't happen anymore with proper rigidBodyOptions
+            console.warn('No rawRigidBody found - entity may not have physics enabled');
+          }
+        } catch (physicsError) {
+          console.warn('Failed to apply physics to particle:', physicsError);
         }
-        
-        // Apply angular velocity if provided
-        if (angularVelocity && this.entity.rawRigidBody) {
-          this.entity.rawRigidBody.setAngvel(angularVelocity, true);
-        }
-      } catch (physicsError) {
-        console.warn('Failed to apply physics to particle:', physicsError);
-      }
+      }, 100); // Slightly longer delay to ensure entity is fully spawned
+    } else {
     }
   }
 

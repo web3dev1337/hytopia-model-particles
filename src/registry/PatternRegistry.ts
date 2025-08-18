@@ -23,7 +23,7 @@ export class PatternRegistry {
   }
   
   private registerDefaults(): void {
-    this.registerPattern('explosion', new ExplosionPattern());
+    this.registerPattern('explosion', new ExplosionPattern({}));
     this.registerPattern('stream', new StreamPattern());
     this.registerPattern('spiral', new SpiralPattern());
     this.registerPattern('wave', new WavePattern());
