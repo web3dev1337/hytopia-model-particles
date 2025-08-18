@@ -16,8 +16,7 @@ export class Particle {
   
   // True pooling support
   private isInitialized: boolean = false;
-  private parkingPosition: Vector3Like = { x: 0, y: -100, z: 0 }; // Reduced from -1000 to avoid CCD issues
-  private targetPosition?: Vector3Like;
+  private parkingPosition: Vector3Like = { x: 0, y: -50, z: 0 }; // Park underground but not too deep
   private rigidBody?: any; // Reference to entity's rigid body
   private _cachedPosition?: Vector3Like; // Cache position to avoid Rust aliasing
   
@@ -112,6 +111,7 @@ export class Particle {
     if (config.mass && config.mass > 0) {
       entityConfig.rigidBodyOptions = {
         type: RigidBodyType.DYNAMIC,
+        ccdEnabled: false,  // DISABLE CCD to prevent tunneling issues with teleportation
         colliders: [
           {
             shape: ColliderShape.BALL,
@@ -152,6 +152,14 @@ export class Particle {
       if (rb && typeof rb.setEnabled === 'function') {
         rb.setEnabled(false); // Disable physics when parked
         this.rigidBody = rb;
+        
+        // Try to disable CCD if possible
+        if (typeof rb.setCcdEnabled === 'function') {
+          rb.setCcdEnabled(false);
+        }
+        if (typeof rb.enableCcd === 'function') {
+          rb.enableCcd(false);
+        }
       }
     }, 50);
     
@@ -177,7 +185,6 @@ export class Particle {
     this.spawnTime = Date.now();
     this.velocity = velocity;
     this.angularVelocity = angularVelocity;
-    this.targetPosition = position;
     
     // Reset animation state
     this.currentScale = this.baseScale;
@@ -284,15 +291,15 @@ export class Particle {
     return true;
   }
 
-  private applyAnimations(progress: number, elapsed: number): void {
-    let needsUpdate = false;
+  private applyAnimations(progress: number, _elapsed: number): void {
+    // let needsUpdate = false; // Not used currently since we can't update spawned entities
     
     // Scale animation
     if (this.animations?.scaleOverTime) {
       const { start, end, curve } = this.animations.scaleOverTime;
       this.currentScale = AnimationSystem.interpolateValue(start, end, progress, curve);
       // Scale changes not supported on spawned entities
-      needsUpdate = true;
+      // needsUpdate = true;
     }
     
     // Color animation
@@ -302,14 +309,14 @@ export class Particle {
         progress
       );
       // Color changes not supported on spawned entities
-      needsUpdate = true;
+      // needsUpdate = true;
     } else if (this.isColorGradient && this.colorGradient) {
       this.currentColor = AnimationSystem.interpolateColor(
         this.colorGradient,
         progress
       );
       // Color changes not supported on spawned entities
-      needsUpdate = true;
+      // needsUpdate = true;
     }
     
     // Opacity animation
@@ -318,7 +325,7 @@ export class Particle {
       this.currentOpacity = AnimationSystem.interpolateValue(start, end, progress, curve);
       if (this.entity.opacity !== undefined) {
         // Opacity changes not supported on spawned entities
-        needsUpdate = true;
+        // needsUpdate = true;
       }
     }
   }
