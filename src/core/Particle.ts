@@ -16,7 +16,7 @@ export class Particle {
   
   // True pooling support
   private isInitialized: boolean = false;
-  private parkingPosition: Vector3Like = { x: 0, y: -1000, z: 0 };
+  private parkingPosition: Vector3Like = { x: 0, y: -100, z: 0 }; // Reduced from -1000 to avoid CCD issues
   private targetPosition?: Vector3Like;
   private rigidBody?: any; // Reference to entity's rigid body
   private _cachedPosition?: Vector3Like; // Cache position to avoid Rust aliasing
@@ -191,16 +191,17 @@ export class Particle {
     if (this.entity.isSpawned) {
       const rb = this.rigidBody || (this.entity as any).rawRigidBody;
       if (rb) {
-        // FIRST: Enable physics so the entity is ready
-        if (typeof rb.setEnabled === 'function') {
-          rb.setEnabled(true);
-        }
-        
-        // SECOND: Move to position after physics is enabled
+        // FIRST: Move to position BEFORE enabling physics to avoid tunneling
         if (typeof (this.entity as any).setPosition === 'function') {
           (this.entity as any).setPosition(position);
         } else if (typeof rb.setPosition === 'function') {
           rb.setPosition(position);
+        }
+        
+        // SECOND: Wait a tiny bit for position to settle
+        // THIRD: Enable physics AFTER position is set to avoid CCD tunneling
+        if (typeof rb.setEnabled === 'function') {
+          rb.setEnabled(true);
         }
         
         // THIRD: Reset velocities to clean state - FORCE reset
@@ -352,7 +353,12 @@ export class Particle {
     if (this.entity.isSpawned) {
       const rb = this.rigidBody || (this.entity as any).rawRigidBody;
       if (rb) {
-        // Reset velocities
+        // FIRST: Disable physics BEFORE moving to avoid CCD issues
+        if (typeof rb.setEnabled === 'function') {
+          rb.setEnabled(false);
+        }
+        
+        // SECOND: Reset velocities after physics is disabled
         if (typeof rb.setLinearVelocity === 'function') {
           rb.setLinearVelocity({ x: 0, y: 0, z: 0 });
         }
@@ -360,13 +366,16 @@ export class Particle {
           rb.setAngularVelocity({ x: 0, y: 0, z: 0 });
         }
         
-        // DISABLE physics to reduce overhead
-        if (typeof rb.setEnabled === 'function') {
-          rb.setEnabled(false);
+        // Reset forces too
+        if (typeof rb.resetForces === 'function') {
+          rb.resetForces();
+        }
+        if (typeof rb.resetTorques === 'function') {
+          rb.resetTorques();
         }
       }
       
-      // Move to parking position
+      // THIRD: Move to parking position AFTER physics is disabled
       if (typeof (this.entity as any).setPosition === 'function') {
         (this.entity as any).setPosition(this.parkingPosition);
       }
