@@ -145,16 +145,17 @@ export class Particle {
     this.entity.spawn(world, this.parkingPosition);
     this.isInitialized = true;
     
+    // Hide immediately
+    this.entity.setOpacity(0.0);
+    
     // Try to get rigid body reference after spawn
     setTimeout(() => {
       if ((this.entity as any).rawRigidBody) {
         this.rigidBody = (this.entity as any).rawRigidBody;
-        console.log('🎯 Got rigid body reference for particle pooling');
       }
-    }, 100);
+    }, 50);
     
-    // Start in parked state
-    this.park();
+    console.log('🏊 Particle spawned at parking position for pooling');
   }
   
   /**
@@ -166,6 +167,9 @@ export class Particle {
     // Initialize if not already done
     if (!this.isInitialized) {
       this.initializeInWorld(world);
+      // Wait a bit for spawn to complete
+      setTimeout(() => this.activate(world, position, velocity, angularVelocity), 100);
+      return;
     }
     
     this.isActive = true;
@@ -179,11 +183,37 @@ export class Particle {
     this.currentColor = { ...this.baseColor };
     this.currentOpacity = this.animations?.opacityOverTime?.start || 1;
     
-    // Move entity to position
-    this.moveToPosition(position, velocity);
-    
-    // Make visible
-    this.entity.setOpacity(this.currentOpacity);
+    // Use setPosition to move entity - THIS IS THE KEY!
+    if (this.entity.isSpawned && typeof (this.entity as any).setPosition === 'function') {
+      // Reset physics state first
+      if (typeof (this.entity as any).setLinearVelocity === 'function') {
+        (this.entity as any).setLinearVelocity({ x: 0, y: 0, z: 0 });
+      }
+      if (typeof (this.entity as any).setAngularVelocity === 'function') {
+        (this.entity as any).setAngularVelocity({ x: 0, y: 0, z: 0 });
+      }
+      
+      // Move to position
+      (this.entity as any).setPosition(position);
+      
+      // Make visible
+      this.entity.setOpacity(this.currentOpacity);
+      
+      // Apply new physics
+      if (velocity) {
+        this.applyPhysics(velocity, angularVelocity);
+      }
+    } else {
+      // Fallback if not spawned or no setPosition
+      if (this.entity.isSpawned) {
+        this.entity.despawn();
+      }
+      this.entity.spawn(world, position);
+      
+      if (velocity) {
+        this.applyPhysics(velocity, angularVelocity);
+      }
+    }
   }
   
   /**
@@ -230,13 +260,19 @@ export class Particle {
     }
     
     // Method 3: Fallback - despawn and respawn (old method)
-    console.warn('⚠️ No movement method available, falling back to respawn');
-    if (this.entity.isSpawned) {
-      this.entity.despawn();
-    }
-    const world = (this.entity as any).world;
-    if (world) {
-      this.entity.spawn(world, position);
+    // Only use this fallback if we're not in pooling mode
+    if (!this.isInitialized) {
+      console.warn('⚠️ No movement method available, falling back to respawn');
+      if (this.entity.isSpawned) {
+        this.entity.despawn();
+      }
+      const world = (this.entity as any).world;
+      if (world) {
+        this.entity.spawn(world, position);
+      }
+    } else {
+      // In pooling mode but can't move - this is a problem
+      console.error('❌ Cannot move pooled particle - entity movement not supported!');
     }
     
     // Apply velocities if physics is enabled
@@ -329,27 +365,27 @@ export class Particle {
   }
 
   /**
-   * Park the particle (for pooling) - moves to parking spot and hides
+   * Park the particle (for pooling) - moves to parking spot
    */
   park(): void {
     if (!this.isActive) return;
     
     this.isActive = false;
     
-    // Move to parking position
-    this.moveToPosition(this.parkingPosition);
-    
-    // Hide the particle
-    this.entity.setOpacity(0.0);
-    
-    // Reset velocities if we have rigid body
-    if (this.rigidBody) {
-      try {
-        this.rigidBody.setLinearVelocity({ x: 0, y: 0, z: 0 });
-        this.rigidBody.setAngularVelocity({ x: 0, y: 0, z: 0 });
-      } catch (e) {
-        // Ignore errors
+    if (this.entity.isSpawned && typeof (this.entity as any).setPosition === 'function') {
+      // Reset velocities
+      if (typeof (this.entity as any).setLinearVelocity === 'function') {
+        (this.entity as any).setLinearVelocity({ x: 0, y: 0, z: 0 });
       }
+      if (typeof (this.entity as any).setAngularVelocity === 'function') {
+        (this.entity as any).setAngularVelocity({ x: 0, y: 0, z: 0 });
+      }
+      
+      // Move to parking position
+      (this.entity as any).setPosition(this.parkingPosition);
+      
+      // Hide
+      this.entity.setOpacity(0.0);
     }
   }
   
@@ -357,8 +393,17 @@ export class Particle {
    * Old despawn method - now parks instead for pooling
    */
   despawn(): void {
-    // For pooling, we park instead of despawning
-    this.park();
+    // If entity is spawned, park it; otherwise actually despawn
+    if (this.entity.isSpawned && this.isInitialized) {
+      this.park();
+    } else if (this.entity.isSpawned) {
+      // Fallback to actual despawn if not initialized for pooling
+      this.isActive = false;
+      this.entity.despawn();
+    } else {
+      // Entity not spawned, just mark inactive
+      this.isActive = false;
+    }
   }
   
   /**
