@@ -222,51 +222,65 @@ export class Particle {
           rb.setPosition(position);
         }
         
-        // SECOND: Wait a tiny bit for position to settle
+        // SECOND: Reset physics properties to defaults
+        if (typeof rb.setGravityScale === 'function') {
+          rb.setGravityScale(1.0); // Reset gravity to normal
+        }
+        if (typeof rb.setLinearDamping === 'function') {
+          rb.setLinearDamping(0.0); // Reset damping
+        }
+        if (typeof rb.setAngularDamping === 'function') {
+          rb.setAngularDamping(0.0); // Reset angular damping
+        }
+        
         // THIRD: Enable physics AFTER position is set to avoid CCD tunneling
         if (typeof rb.setEnabled === 'function') {
           rb.setEnabled(true);
         }
         
-        // THIRD: Reset velocities to clean state - FORCE reset
-        if (typeof rb.setLinearVelocity === 'function') {
-          rb.setLinearVelocity({ x: 0, y: 0, z: 0 });
-          rb.setLinearVelocity({ x: 0, y: 0, z: 0 }); // Double reset to ensure it takes
-        }
-        if (typeof rb.setAngularVelocity === 'function') {
-          rb.setAngularVelocity({ x: 0, y: 0, z: 0 });
-        }
-        
-        // Also reset any accumulated forces
-        if (typeof rb.resetForces === 'function') {
-          rb.resetForces();
-        }
-        if (typeof rb.resetTorques === 'function') {
-          rb.resetTorques();
-        }
-        
-        // FOURTH: Apply new velocities IMMEDIATELY (matching v2.2 behavior)
-        if (velocity) {
-          // Apply impulse to give the particle its explosion velocity
-          // This matches how it worked in v2.2 when entities were freshly spawned
-          if (typeof rb.applyImpulse === 'function') {
-            rb.applyImpulse(velocity);
+        // FOURTH: Let physics settle for one frame
+        setTimeout(() => {
+          if (!rb || !this.isActive) return;
+          
+          // Reset velocities to clean state - FORCE reset
+          if (typeof rb.setLinearVelocity === 'function') {
+            rb.setLinearVelocity({ x: 0, y: 0, z: 0 });
+          }
+          if (typeof rb.setAngularVelocity === 'function') {
+            rb.setAngularVelocity({ x: 0, y: 0, z: 0 });
           }
           
-          // Add tiny random spin for realism
-          if (angularVelocity && typeof rb.applyTorqueImpulse === 'function') {
-            rb.applyTorqueImpulse(angularVelocity);
-          } else if (typeof rb.applyTorqueImpulse === 'function') {
-            const randomSpin = {
-              x: (Math.random() - 0.5) * 0.02,
-              y: (Math.random() - 0.5) * 0.02,
-              z: (Math.random() - 0.5) * 0.02
-            };
-            rb.applyTorqueImpulse(randomSpin);
+          // Also reset any accumulated forces
+          if (typeof rb.resetForces === 'function') {
+            rb.resetForces();
           }
-        }
+          if (typeof rb.resetTorques === 'function') {
+            rb.resetTorques();
+          }
+          
+          // FIFTH: Apply new velocities after reset
+          if (velocity) {
+            // Apply impulse to give the particle its explosion velocity
+            // This matches how it worked in v2.2 when entities were freshly spawned
+            if (typeof rb.applyImpulse === 'function') {
+              rb.applyImpulse(velocity);
+            }
+            
+            // Add tiny random spin for realism
+            if (angularVelocity && typeof rb.applyTorqueImpulse === 'function') {
+              rb.applyTorqueImpulse(angularVelocity);
+            } else if (typeof rb.applyTorqueImpulse === 'function') {
+              const randomSpin = {
+                x: (Math.random() - 0.5) * 0.02,
+                y: (Math.random() - 0.5) * 0.02,
+                z: (Math.random() - 0.5) * 0.02
+              };
+              rb.applyTorqueImpulse(randomSpin);
+            }
+          }
+        }, 16); // Wait one frame for physics to settle
         
-        // FINALLY: Make visible
+        // Make visible immediately
         this.entity.setOpacity(this.currentOpacity);
       }
     }
@@ -473,19 +487,25 @@ export class Particle {
   private startDebugTracking(): void {
     console.log('🔍 Starting debug tracking for Particle #0');
     
-    // Track every 250ms
+    // Track every 300ms
     this.debugTrackingInterval = setInterval(() => {
       if (!this.entity || !this.entity.isSpawned) return;
       
       const rb = this.rigidBody || (this.entity as any).rawRigidBody;
       if (!rb) return;
       
-      // Get current state
+      // Get ALL properties we can
       const pos = this.entity.position || { x: 0, y: 0, z: 0 };
       const linearVel = rb.linearVelocity || { x: 0, y: 0, z: 0 };
       const angularVel = rb.angularVelocity || { x: 0, y: 0, z: 0 };
       const isEnabled = rb.isEnabled ? rb.isEnabled() : false;
       const isCcd = rb.isCcdEnabled ? rb.isCcdEnabled() : false;
+      const mass = rb.mass || 0;
+      const gravityScale = rb.gravityScale || 1;
+      const linearDamping = rb.linearDamping || 0;
+      const angularDamping = rb.angularDamping || 0;
+      const isSleeping = rb.isSleeping ? rb.isSleeping() : false;
+      const isMoving = rb.isMoving ? rb.isMoving() : false;
       
       // Calculate velocity magnitude
       const velMagnitude = Math.sqrt(linearVel.x ** 2 + linearVel.y ** 2 + linearVel.z ** 2);
@@ -495,9 +515,15 @@ export class Particle {
         vel: `(${linearVel.x.toFixed(2)}, ${linearVel.y.toFixed(2)}, ${linearVel.z.toFixed(2)}) mag=${velMagnitude.toFixed(2)}`,
         angVel: `(${angularVel.x.toFixed(2)}, ${angularVel.y.toFixed(2)}, ${angularVel.z.toFixed(2)})`,
         physics: isEnabled ? 'ON' : 'OFF',
-        ccd: isCcd ? 'ON' : 'OFF'
+        ccd: isCcd ? 'ON' : 'OFF',
+        mass: mass.toFixed(2),
+        gravityScale: gravityScale.toFixed(2),
+        linearDamping: linearDamping.toFixed(2),
+        angularDamping: angularDamping.toFixed(2),
+        sleeping: isSleeping ? 'YES' : 'NO',
+        moving: isMoving ? 'YES' : 'NO'
       });
-    }, 250); // Every 250ms
+    }, 300); // Every 300ms
   }
   
   private stopDebugTracking(): void {
