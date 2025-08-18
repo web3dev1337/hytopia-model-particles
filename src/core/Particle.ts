@@ -142,16 +142,36 @@ export class Particle {
   initializeInWorld(world: World): void {
     if (this.isInitialized) return;
     
-    // Mark as initialized but don't spawn yet
-    // We'll spawn when needed to avoid having too many entities
+    // Spawn entity at parking position
+    this.entity.spawn(world, this.parkingPosition);
     this.isInitialized = true;
+    
+    // IMMEDIATELY disable physics to reduce overhead
+    setTimeout(() => {
+      const rb = (this.entity as any).rawRigidBody;
+      if (rb && typeof rb.setEnabled === 'function') {
+        rb.setEnabled(false); // Disable physics when parked
+        this.rigidBody = rb;
+      }
+    }, 50);
+    
+    // Hide immediately
+    this.entity.setOpacity(0.0);
   }
   
   /**
-   * Activate particle at position (hybrid pooling)
+   * Activate particle at position (true pooling with physics disable)
    */
   activate(world: World, position: Vector3Like, velocity?: Vector3Like, angularVelocity?: Vector3Like): void {
     if (this.isActive) return;
+    
+    // Initialize if not already done
+    if (!this.isInitialized) {
+      this.initializeInWorld(world);
+      // Wait for initialization
+      setTimeout(() => this.activate(world, position, velocity, angularVelocity), 100);
+      return;
+    }
     
     this.isActive = true;
     this.spawnTime = Date.now();
@@ -167,17 +187,43 @@ export class Particle {
     // Update cached position
     this._cachedPosition = { ...position };
     
-    // Hybrid approach: spawn/despawn for performance
-    // Keeping too many entities spawned kills FPS
+    // TRUE POOLING: Move entity and enable physics
     if (this.entity.isSpawned) {
-      this.entity.despawn();
-    }
-    
-    this.entity.spawn(world, position);
-    
-    // Apply physics after spawn
-    if (velocity) {
-      this.applyPhysics(velocity, angularVelocity);
+      const rb = this.rigidBody || (this.entity as any).rawRigidBody;
+      if (rb) {
+        // Reset velocities
+        if (typeof rb.setLinearVelocity === 'function') {
+          rb.setLinearVelocity({ x: 0, y: 0, z: 0 });
+        }
+        if (typeof rb.setAngularVelocity === 'function') {
+          rb.setAngularVelocity({ x: 0, y: 0, z: 0 });
+        }
+        
+        // Move to position
+        if (typeof (this.entity as any).setPosition === 'function') {
+          (this.entity as any).setPosition(position);
+        } else if (typeof rb.setPosition === 'function') {
+          rb.setPosition(position);
+        }
+        
+        // ENABLE physics for active particle
+        if (typeof rb.setEnabled === 'function') {
+          rb.setEnabled(true);
+        }
+        
+        // Make visible
+        this.entity.setOpacity(this.currentOpacity);
+        
+        // Apply velocities
+        setTimeout(() => {
+          if (velocity && rb) {
+            rb.applyImpulse(velocity);
+            if (angularVelocity) {
+              rb.applyTorqueImpulse(angularVelocity);
+            }
+          }
+        }, 10);
+      }
     }
   }
   
@@ -333,17 +379,37 @@ export class Particle {
   }
 
   /**
-   * Park the particle (hybrid pooling) - despawns for performance
+   * Park the particle (true pooling) - disables physics and hides
    */
   park(): void {
     if (!this.isActive) return;
     
     this.isActive = false;
     
-    // Despawn to save performance
-    // Having too many entities spawned kills FPS
     if (this.entity.isSpawned) {
-      this.entity.despawn();
+      const rb = this.rigidBody || (this.entity as any).rawRigidBody;
+      if (rb) {
+        // Reset velocities
+        if (typeof rb.setLinearVelocity === 'function') {
+          rb.setLinearVelocity({ x: 0, y: 0, z: 0 });
+        }
+        if (typeof rb.setAngularVelocity === 'function') {
+          rb.setAngularVelocity({ x: 0, y: 0, z: 0 });
+        }
+        
+        // DISABLE physics to reduce overhead
+        if (typeof rb.setEnabled === 'function') {
+          rb.setEnabled(false);
+        }
+      }
+      
+      // Move to parking position
+      if (typeof (this.entity as any).setPosition === 'function') {
+        (this.entity as any).setPosition(this.parkingPosition);
+      }
+      
+      // Hide
+      this.entity.setOpacity(0.0);
     }
     
     // Clear cached position

@@ -43,15 +43,23 @@ export class ParticlePool {
   }
   
   private initializePool(): void {
-    // Create particle wrappers but don't spawn entities yet
-    // We'll spawn on demand to avoid performance issues
-    for (let i = 0; i < Math.min(20, this.poolSize); i++) {
+    // Create particle wrappers and pre-spawn LIMITED number of entities
+    // We pre-spawn only 50 to avoid performance issues
+    const poolSizeLimit = Math.min(50, this.poolSize);
+    
+    for (let i = 0; i < poolSizeLimit; i++) {
       const particle = new Particle(this.defaultConfig, this.entityFactory);
+      
+      // Pre-spawn in world if available (with physics disabled)
+      if (this.world) {
+        (particle as any).initializeInWorld(this.world);
+      }
+      
       this.availableParticles.push(particle);
       this.totalCreated++;
     }
     
-    console.log(`🏊 Initialized particle pool with ${Math.min(20, this.poolSize)} particle wrappers (entities spawn on demand)`);
+    console.log(`🏊 Initialized particle pool with ${poolSizeLimit} pre-spawned entities (physics disabled when parked)`);
   }
   
   acquire(config?: Partial<ParticleConfig>, position?: any, velocity?: any): Particle | null {
