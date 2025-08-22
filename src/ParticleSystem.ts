@@ -61,10 +61,80 @@ export class ParticleSystem {
     if (options.autoCleanup !== false) {
       this.startCleanupLoop();
     }
+    
+    // Register built-in effects
+    this.registerBuiltInEffects();
+  }
+  
+  /**
+   * Register built-in particle effects that come with the plugin
+   */
+  private registerBuiltInEffects(): void {
+    // Traditional wall impact effect (simple, minimal movement like original HyFire)
+    this.registerEffect({
+      name: 'wall_impact_traditional',
+      config: {
+        modelUri: 'models/items/gold-nugget.gltf',
+        lifetime: 2000,
+        mass: 0.76,
+        useGravity: true,
+        gravityScale: 1.0,
+        modelScale: 0.081,
+        tintColor: { r: 0, g: 0, b: 0 },
+        ccdEnabled: true // Enable CCD for collision detection
+      },
+      count: 2,
+      // Very tiny movement - much smaller than before
+      velocityMin: { x: -0.05, y: 0.01, z: -0.05 },
+      velocityMax: { x: 0.05, y: 0.03, z: 0.05 }
+    });
+    
+    // Enhanced wall impact effect (animated sparks)
+    this.registerEffect({
+      name: 'wall_impact_sparks',
+      config: {
+        modelUri: 'models/items/gold-nugget.gltf',
+        lifetime: 1500,
+        mass: 0.05,
+        useGravity: true,
+        gravityScale: 1.5,
+        ccdEnabled: true, // Enable CCD for collision detection
+        animations: {
+          scaleOverTime: {
+            start: 0.8,
+            end: 0.1,
+            curve: { type: 'easeOut' }
+          },
+          colorOverTime: {
+            type: 'smooth',
+            keyframes: [
+              { time: 0, color: { r: 255, g: 255, b: 200 } },
+              { time: 0.3, color: { r: 255, g: 150, b: 50 } },
+              { time: 0.7, color: { r: 200, g: 50, b: 20 } },
+              { time: 1.0, color: { r: 100, g: 20, b: 10 } }
+            ]
+          },
+          opacityOverTime: {
+            start: 1.0,
+            end: 0.0,
+            curve: { type: 'easeIn' }
+          }
+        }
+      },
+      count: 15,
+      pattern: 'explosion',
+      patternModifiers: {
+        intensity: 0.8,
+        spread: 1.2
+      }
+    });
   }
 
   registerEffect(effect: ParticleEffect): void {
+    console.log('🔧 PLUGIN DEBUG: Registering effect:', effect.name, effect);
     this.effects.set(effect.name, effect);
+    console.log('🔧 PLUGIN DEBUG: Effect registered. Total effects:', this.effects.size);
+    console.log('🔧 PLUGIN DEBUG: All registered effects:', Array.from(this.effects.keys()));
   }
 
   registerPattern(name: string, pattern: Pattern): void {
@@ -75,13 +145,17 @@ export class ParticleSystem {
    * Spawn particles with effect or pattern
    */
   spawn(effectName: string, position: Vector3Like, options: any = {}): void {
+    console.log('🔧 PLUGIN DEBUG: spawn() called with effect:', effectName, 'position:', position);
+    
     // Process through queue if performance monitoring is enabled
     if (this.performanceMonitor) {
+      console.log('🔧 PLUGIN DEBUG: Using performance monitor queue');
       const priority = options.priority || 0;
       this.effectQueue?.enqueue(effectName, position, priority, options);
       return;
     }
     
+    console.log('🔧 PLUGIN DEBUG: Direct spawn mode');
     // Direct spawn
     this.spawnDirect(effectName, position, options);
   }
@@ -90,19 +164,27 @@ export class ParticleSystem {
    * Direct spawn bypassing queue
    */
   private spawnDirect(effectName: string, position: Vector3Like, options: any = {}): void {
+    console.log('🔧 PLUGIN DEBUG: spawnDirect() called for effect:', effectName);
+    console.log('🔧 PLUGIN DEBUG: Available effects:', Array.from(this.effects.keys()));
+    
     const effect = this.effects.get(effectName);
     if (!effect) {
+      console.error('🔧 PLUGIN DEBUG: Effect not found!', effectName, 'Available:', Array.from(this.effects.keys()));
       if (this.debug) {
         console.warn(`Particle effect '${effectName}' not found`);
       }
       return;
     }
     
+    console.log('🔧 PLUGIN DEBUG: Effect found:', effect);
+    
     // Check performance limits
     if (this.performanceMonitor && !this.performanceMonitor.shouldSpawnParticle()) {
+      console.log('🔧 PLUGIN DEBUG: Performance monitor blocked spawn');
       return;
     }
     
+    console.log('🔧 PLUGIN DEBUG: About to spawn with pattern...');
     // Use pattern if specified
     if (effect.pattern) {
       this.spawnWithPattern(

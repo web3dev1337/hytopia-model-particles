@@ -84,6 +84,7 @@ class Particle {
                 friction: config.friction || 0.5,
                 restitution: config.bounciness || 0.2,
                 gravityScale: config.gravityScale ?? (config.useGravity !== false ? 1 : 0),
+                ccdEnabled: config.ccdEnabled || false, // CRITICAL: Add CCD support
                 colliders: [
                     {
                         shape: hytopia_1.ColliderShape.BALL,

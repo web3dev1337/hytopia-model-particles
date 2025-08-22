@@ -65,6 +65,7 @@ export interface ParticleConfig {
         max: number;
         velocity?: number;
     };
+    ccdEnabled?: boolean;
 }
 export interface ParticleEffect {
     name: string;

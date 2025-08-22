@@ -53,6 +53,7 @@ export interface ParticleConfig {
     max: number;
     velocity?: number;
   };
+  ccdEnabled?: boolean; // Continuous Collision Detection
 }
 
 export interface ParticleEffect {
