@@ -7,8 +7,9 @@ export class PerformanceMonitor {
   private lastFrameTime: number = Date.now();
   private frameCount: number = 0;
   private monitoringStartTime: number = Date.now();
+  private onUpdate?: (metrics: PerformanceMetrics) => void;
   
-  constructor(options: PerformanceOptions = {}) {
+  constructor(options: PerformanceOptions = {}, onUpdate?: (metrics: PerformanceMetrics) => void) {
     this.options = {
       enableAdaptiveQuality: options.enableAdaptiveQuality ?? true,
       targetFPS: options.targetFPS ?? 60,
@@ -17,8 +18,12 @@ export class PerformanceMonitor {
         medium: { maxParticles: 500, particleScale: 0.8 },
         low: { maxParticles: 200, particleScale: 0.6 }
       },
-      monitoringInterval: options.monitoringInterval ?? 1000
+      monitoringInterval: options.monitoringInterval ?? 1000,
+      enablePooling: options.enablePooling ?? true,
+      enableSpatialOptimization: options.enableSpatialOptimization ?? false,
+      updateRadius: options.updateRadius ?? 50
     };
+    this.onUpdate = onUpdate;
 
     this.metrics = {
       currentFPS: 60,
@@ -160,5 +165,30 @@ Performance Report:
 - Runtime: ${runtime.toFixed(1)}s
 - Total Frames: ${this.frameCount}
     `.trim();
+  }
+  
+  /**
+   * Start monitoring (v2.2 compatibility)
+   */
+  startMonitoring(): void {
+    // Already monitoring, just reset
+    this.reset();
+  }
+  
+  /**
+   * Stop monitoring (v2.2 compatibility)
+   */
+  stopMonitoring(): void {
+    // No-op for now
+  }
+  
+  /**
+   * Record a frame (v2.2 compatibility)
+   */
+  recordFrame(): void {
+    this.update(this.metrics.particleCount, this.metrics.poolSize);
+    if (this.onUpdate) {
+      this.onUpdate(this.getMetrics());
+    }
   }
 }

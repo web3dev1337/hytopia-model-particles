@@ -23,7 +23,7 @@ export class PatternRegistry {
   }
   
   private registerDefaults(): void {
-    this.registerPattern('explosion', new ExplosionPattern());
+    this.registerPattern('explosion', new ExplosionPattern({}));
     this.registerPattern('stream', new StreamPattern());
     this.registerPattern('spiral', new SpiralPattern());
     this.registerPattern('wave', new WavePattern());
@@ -35,8 +35,18 @@ export class PatternRegistry {
     this.patterns.set(name.toLowerCase(), pattern);
   }
   
+  // Alias for v2.2 compatibility
+  register(name: string, pattern: Pattern): void {
+    this.registerPattern(name, pattern);
+  }
+  
   getPattern(name: string): Pattern | undefined {
     return this.patterns.get(name.toLowerCase());
+  }
+  
+  // Alias for v2.2 compatibility
+  get(name: string): Pattern | undefined {
+    return this.getPattern(name);
   }
   
   hasPattern(name: string): boolean {

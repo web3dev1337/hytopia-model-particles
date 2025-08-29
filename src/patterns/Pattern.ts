@@ -25,6 +25,46 @@ export abstract class Pattern {
   abstract generatePoints(): Vector3Like[];
   abstract generateVelocities(): Vector3Like[];
 
+  /**
+   * Generate particles for v2.2 compatibility
+   */
+  generate(
+    config: any,
+    position: Vector3Like,
+    count: number,
+    options?: any
+  ): Array<{
+    config: any;
+    position: Vector3Like;
+    velocity?: Vector3Like;
+    angularVelocity?: Vector3Like;
+  }> {
+    
+    this.count = count;
+    if (options) {
+      this.applyModifiers(options);
+    }
+    
+    const points = this.generatePoints();
+    const velocities = this.generateVelocities();
+    
+    const result = points.map((point, i) => ({
+      config,
+      position: {
+        x: position.x + point.x,
+        y: position.y + point.y,
+        z: position.z + point.z
+      },
+      velocity: velocities[i],
+      angularVelocity: this.generateAngularVelocity ? this.generateAngularVelocity() : undefined
+    }));
+    
+    
+    return result;
+  }
+  
+  protected generateAngularVelocity?(): Vector3Like;
+
   protected randomVector3(scale: number = 1): Vector3Like {
     return {
       x: (Math.random() - 0.5) * scale,

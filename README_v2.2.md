@@ -1,16 +1,8 @@
-# Hytopia Model Particles v2.3.0
+# Hytopia Model Particles v2.2.0
 
-Advanced particle system plugin for the Hytopia SDK featuring **TRUE entity pooling**, **physics forces**, **spatial optimization**, and **simplified initialization**.
+Advanced particle system plugin for the Hytopia SDK featuring **object pooling**, **physics forces**, **spatial optimization**, and **simplified initialization**.
 
-## 🚀 What's New in v2.3.0
-
-- 🎯 **TRUE Entity Pooling** - Entities stay spawned, just move between positions!
-- 🚄 **Zero Spawn/Despawn Overhead** - Particles teleport instead of recreating
-- 🏊 **Gradual Pool Building** - Builds 1000 entities at 10 per tick to avoid FPS drops
-- 🎨 **Parking System** - Inactive particles hide at y=-1000 with physics disabled
-- ⚡ **Fixed Velocity Application** - Particles explode properly when activated from pool
-
-## Previous v2.2.0 Features
+## 🚀 What's New in v2.2.0
 
 - 🏊 **Object Pooling** - Reuse particles for massive performance gains
 - 🌊 **Physics Forces** - Global wind, turbulence, and vortex effects
@@ -22,7 +14,7 @@ Advanced particle system plugin for the Hytopia SDK featuring **TRUE entity pool
 ## 📦 Installation
 
 ```bash
-npm install hytopia-model-particles@2.3.0
+npm install hytopia-model-particles@2.2.0
 ```
 
 ## 🎯 Quick Start - Simple by Default!

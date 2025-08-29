@@ -1,6 +1,8 @@
 // Core exports
-export { Particle } from './Particle';
-export { ParticleSystem } from './ParticleSystem';
+export { Particle } from './core/Particle';
+export { ParticleSystemV1 } from './ParticleSystemV1';
+export { ParticleSystemV2 } from './ParticleSystemV2';
+export { ParticleSystemV2 as ParticleSystem } from './ParticleSystemV2'; // Default to v2
 
 // Pattern exports
 export { Pattern } from './patterns/Pattern';
@@ -26,6 +28,12 @@ export { PatternRegistry, CompositePattern } from './registry/PatternRegistry';
 
 // Queue exports
 export { EffectQueue } from './queue/EffectQueue';
+
+// v2.2 exports - Optimization & Physics
+export { ParticlePool } from './core/ParticlePool';
+export { PhysicsForces } from './physics/PhysicsForces';
+export { SpatialOptimizer } from './optimization/SpatialOptimizer';
+export { ParticleDataBuffer, ParticleFlags } from './optimization/ParticleDataBuffer';
 
 // Type exports
 export * from './types';
