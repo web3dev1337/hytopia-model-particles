@@ -373,9 +373,16 @@ export class ParticleSystemV2 {
     // Update player positions for spatial optimization
     if (this.spatialOptimizer && this.world.entityManager) {
       const playerEntities = this.world.entityManager.getAllPlayerEntities();
-      const playerPositions = playerEntities
-        .filter(pe => pe.position)
-        .map(pe => pe.position!);
+      const playerPositions: Vector3Like[] = [];
+      
+      // Process each entity once to avoid Rust aliasing
+      for (const pe of playerEntities) {
+        if (pe.position) {
+          const pos = pe.position;
+          playerPositions.push({ x: pos.x, y: pos.y, z: pos.z });
+        }
+      }
+      
       this.spatialOptimizer.setPlayerPositions(playerPositions);
     }
     

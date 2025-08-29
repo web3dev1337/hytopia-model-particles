@@ -50,9 +50,13 @@ export class Particle {
     this.particleId = Particle.debugParticleId++;
     
     // Start debug tracking for first particle
+    // DISABLED: Causes Rust aliasing errors when accessing entity properties
+    // Particles are confirmed working - parking at Y=-50 and reusing properly
+    /*
     if (this.particleId === 0) {
       this.startDebugTracking();
     }
+    */
     
     // Parse scale config
     if (typeof config.modelScale === 'object') {
@@ -543,8 +547,8 @@ export class Particle {
    * Update cached position - call this once per frame
    */
   updateCachedPosition(): void {
-    if (this.entity.position) {
-      const pos = this.entity.position;
+    const pos = this.entity.position;
+    if (pos) {
       this._cachedPosition = { x: pos.x, y: pos.y, z: pos.z };
     } else {
       this._cachedPosition = undefined;
@@ -572,10 +576,13 @@ export class Particle {
       const rb = this.rigidBody || (this.entity as any).rawRigidBody;
       if (!rb) return;
       
-      // Get ALL properties we can
-      const pos = this.entity.position || { x: 0, y: 0, z: 0 };
-      const linearVel = rb.linearVelocity || { x: 0, y: 0, z: 0 };
-      const angularVel = rb.angularVelocity || { x: 0, y: 0, z: 0 };
+      // Get ALL properties we can (store position once to avoid Rust aliasing)
+      const entityPos = this.entity.position;
+      const pos = entityPos ? { x: entityPos.x, y: entityPos.y, z: entityPos.z } : { x: 0, y: 0, z: 0 };
+      const rbLinearVel = rb.linearVelocity;
+      const linearVel = rbLinearVel ? { x: rbLinearVel.x, y: rbLinearVel.y, z: rbLinearVel.z } : { x: 0, y: 0, z: 0 };
+      const rbAngularVel = rb.angularVelocity;
+      const angularVel = rbAngularVel ? { x: rbAngularVel.x, y: rbAngularVel.y, z: rbAngularVel.z } : { x: 0, y: 0, z: 0 };
       const isEnabled = rb.isEnabled ? rb.isEnabled() : false;
       const isCcd = rb.isCcdEnabled ? rb.isCcdEnabled() : false;
       const mass = typeof rb.mass === 'number' ? rb.mass : 'N/A';
