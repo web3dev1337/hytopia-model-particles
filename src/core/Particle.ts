@@ -547,12 +547,17 @@ export class Particle {
    * Update cached position - call this once per frame
    */
   updateCachedPosition(): void {
-    const pos = this.entity.position;
-    if (pos) {
-      this._cachedPosition = { x: pos.x, y: pos.y, z: pos.z };
-    } else {
-      this._cachedPosition = undefined;
+    try {
+      const pos = this.entity.position;
+      if (pos) {
+        this._cachedPosition = { x: pos.x, y: pos.y, z: pos.z };
+        return;
+      }
+    } catch (error) {
+      // Leave cached value untouched if physics refuses the borrow
+      console.warn('model_particles.position_cache.failed', error instanceof Error ? error.message : String(error));
     }
+    // If retrieving the position fails (due to physics borrowing), keep previous cache
   }
   
   getLifetimeProgress(): number {
