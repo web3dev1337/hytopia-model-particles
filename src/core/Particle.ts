@@ -442,68 +442,93 @@ export class Particle {
    */
   park(): void {
     if (!this.isActive) return;
-    
+
     this.isActive = false;
-    
+
     // Debug log for first particle
     if (this.particleId === 0) {
       console.log(`🏁 P#0 PARKING back to underground position at time: ${Date.now() - this.spawnTime}ms after spawn`);
     }
-    
+
     if (this.entity.isSpawned) {
       const rb = this.rigidBody || (this.entity as any).rawRigidBody;
       if (rb) {
-        // CRITICAL FIX: Clear ALL velocities and forces BEFORE disabling physics
-        // This prevents velocity from accumulating while physics is disabled
-        if (typeof rb.setLinearVelocity === 'function') {
-          rb.setLinearVelocity({ x: 0, y: 0, z: 0 });
-        }
-        if (typeof rb.setAngularVelocity === 'function') {
-          rb.setAngularVelocity({ x: 0, y: 0, z: 0 });
-        }
-        
-        // Reset forces BEFORE disabling
-        if (typeof rb.resetForces === 'function') {
-          rb.resetForces();
-        }
-        if (typeof rb.resetTorques === 'function') {
-          rb.resetTorques();
-        }
-        
-        // Reset acceleration if it exists
-        if (typeof rb.setLinearAcceleration === 'function') {
-          rb.setLinearAcceleration({ x: 0, y: 0, z: 0 });
-        }
-        if (typeof rb.setAngularAcceleration === 'function') {
-          rb.setAngularAcceleration({ x: 0, y: 0, z: 0 });
-        }
-        
-        // Set gravity scale to 0 to prevent further falling
-        if (typeof rb.setGravityScale === 'function') {
-          rb.setGravityScale(0);
-        }
-        
-        // NOW disable physics after clearing everything
-        if (typeof rb.setEnabled === 'function') {
-          rb.setEnabled(false);
-        }
+        // Wrap all rigid body calls in try-catch to handle Rust aliasing errors gracefully
+        // Each method call can fail independently without breaking the entire parking sequence
+        try {
+          // CRITICAL FIX: Clear ALL velocities and forces BEFORE disabling physics
+          // This prevents velocity from accumulating while physics is disabled
+          if (typeof rb.setLinearVelocity === 'function') {
+            rb.setLinearVelocity({ x: 0, y: 0, z: 0 });
+          }
+        } catch (e) { /* Ignore aliasing errors */ }
+
+        try {
+          if (typeof rb.setAngularVelocity === 'function') {
+            rb.setAngularVelocity({ x: 0, y: 0, z: 0 });
+          }
+        } catch (e) { /* Ignore aliasing errors */ }
+
+        try {
+          // Reset forces BEFORE disabling
+          if (typeof rb.resetForces === 'function') {
+            rb.resetForces();
+          }
+        } catch (e) { /* Ignore aliasing errors */ }
+
+        try {
+          if (typeof rb.resetTorques === 'function') {
+            rb.resetTorques();
+          }
+        } catch (e) { /* Ignore aliasing errors */ }
+
+        try {
+          // Reset acceleration if it exists
+          if (typeof rb.setLinearAcceleration === 'function') {
+            rb.setLinearAcceleration({ x: 0, y: 0, z: 0 });
+          }
+        } catch (e) { /* Ignore aliasing errors */ }
+
+        try {
+          if (typeof rb.setAngularAcceleration === 'function') {
+            rb.setAngularAcceleration({ x: 0, y: 0, z: 0 });
+          }
+        } catch (e) { /* Ignore aliasing errors */ }
+
+        try {
+          // Set gravity scale to 0 to prevent further falling
+          if (typeof rb.setGravityScale === 'function') {
+            rb.setGravityScale(0);
+          }
+        } catch (e) { /* Ignore aliasing errors */ }
+
+        try {
+          // NOW disable physics after clearing everything
+          if (typeof rb.setEnabled === 'function') {
+            rb.setEnabled(false);
+          }
+        } catch (e) { /* Ignore aliasing errors */ }
       }
-      
-      // Move to parking position AFTER physics is disabled
-      if (typeof (this.entity as any).setPosition === 'function') {
-        (this.entity as any).setPosition(this.parkingPosition);
-      } else if (rb && typeof rb.setPosition === 'function') {
-        rb.setPosition(this.parkingPosition);
-      }
-      
-      // Hide
-      this.entity.setOpacity(0.0);
+
+      try {
+        // Move to parking position AFTER physics is disabled
+        if (typeof (this.entity as any).setPosition === 'function') {
+          (this.entity as any).setPosition(this.parkingPosition);
+        } else if (rb && typeof rb.setPosition === 'function') {
+          rb.setPosition(this.parkingPosition);
+        }
+      } catch (e) { /* Ignore aliasing errors */ }
+
+      try {
+        // Hide
+        this.entity.setOpacity(0.0);
+      } catch (e) { /* Ignore aliasing errors */ }
     }
-    
+
     // Clear internal velocity tracking
     this.velocity = undefined;
     this.angularVelocity = undefined;
-    
+
     // Clear cached position
     this._cachedPosition = undefined;
   }
