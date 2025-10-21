@@ -278,64 +278,94 @@ export class Particle {
     }
     
     // CRITICAL FIX: Ensure ALL velocities and forces are cleared BEFORE moving
+    // Wrap each rigid body call in try-catch to prevent Rust aliasing errors
     if (rb) {
       // Clear any residual velocities from previous life
-      if (typeof rb.setLinearVelocity === 'function') {
-        rb.setLinearVelocity({ x: 0, y: 0, z: 0 });
-      }
-      if (typeof rb.setAngularVelocity === 'function') {
-        rb.setAngularVelocity({ x: 0, y: 0, z: 0 });
-      }
-      if (typeof rb.resetForces === 'function') {
-        rb.resetForces();
-      }
-      if (typeof rb.resetTorques === 'function') {
-        rb.resetTorques();
-      }
+      try {
+        if (typeof rb.setLinearVelocity === 'function') {
+          rb.setLinearVelocity({ x: 0, y: 0, z: 0 });
+        }
+      } catch (e) { /* Ignore aliasing errors */ }
+
+      try {
+        if (typeof rb.setAngularVelocity === 'function') {
+          rb.setAngularVelocity({ x: 0, y: 0, z: 0 });
+        }
+      } catch (e) { /* Ignore aliasing errors */ }
+
+      try {
+        if (typeof rb.resetForces === 'function') {
+          rb.resetForces();
+        }
+      } catch (e) { /* Ignore aliasing errors */ }
+
+      try {
+        if (typeof rb.resetTorques === 'function') {
+          rb.resetTorques();
+        }
+      } catch (e) { /* Ignore aliasing errors */ }
     }
-    
+
     // Move to position WITH PHYSICS DISABLED
-    if (typeof (this.entity as any).setPosition === 'function') {
-      (this.entity as any).setPosition(position);
-    } else if (rb && typeof rb.setPosition === 'function') {
-      rb.setPosition(position);
-    }
-    
+    try {
+      if (typeof (this.entity as any).setPosition === 'function') {
+        (this.entity as any).setPosition(position);
+      } else if (rb && typeof rb.setPosition === 'function') {
+        rb.setPosition(position);
+      }
+    } catch (e) { /* Ignore aliasing errors on setPosition */ }
+
     // Make visible
-    this.entity.setOpacity(this.currentOpacity);
-    
+    try {
+      this.entity.setOpacity(this.currentOpacity);
+    } catch (e) { /* Ignore aliasing errors */ }
+
     if (rb) {
       // Reset ALL physics state to defaults
-      if (typeof rb.setGravityScale === 'function') {
-        rb.setGravityScale(this.config.useGravity !== false ? 1.0 : 0.0);
-      }
-      if (typeof rb.setLinearDamping === 'function') {
-        rb.setLinearDamping(0.0); // Use default damping
-      }
-      if (typeof rb.setAngularDamping === 'function') {
-        rb.setAngularDamping(0.0); // Use default damping
-      }
-      
+      try {
+        if (typeof rb.setGravityScale === 'function') {
+          rb.setGravityScale(this.config.useGravity !== false ? 1.0 : 0.0);
+        }
+      } catch (e) { /* Ignore aliasing errors */ }
+
+      try {
+        if (typeof rb.setLinearDamping === 'function') {
+          rb.setLinearDamping(0.0); // Use default damping
+        }
+      } catch (e) { /* Ignore aliasing errors */ }
+
+      try {
+        if (typeof rb.setAngularDamping === 'function') {
+          rb.setAngularDamping(0.0); // Use default damping
+        }
+      } catch (e) { /* Ignore aliasing errors */ }
+
       // Re-enable physics AFTER position is set and velocities cleared
-      if (typeof rb.setEnabled === 'function') {
-        rb.setEnabled(true);
-      }
-      
+      try {
+        if (typeof rb.setEnabled === 'function') {
+          rb.setEnabled(true);
+        }
+      } catch (e) { /* Ignore aliasing errors */ }
+
       // Apply initial velocities AFTER physics is enabled
-      if (velocity && typeof rb.applyImpulse === 'function') {
-        rb.applyImpulse(velocity);
-      }
-      
-      if (angularVelocity && typeof rb.applyTorqueImpulse === 'function') {
-        rb.applyTorqueImpulse(angularVelocity);
-      } else if (typeof rb.applyTorqueImpulse === 'function') {
-        const randomSpin = {
-          x: (Math.random() - 0.5) * 0.02,
-          y: (Math.random() - 0.5) * 0.02,
-          z: (Math.random() - 0.5) * 0.02
-        };
-        rb.applyTorqueImpulse(randomSpin);
-      }
+      try {
+        if (velocity && typeof rb.applyImpulse === 'function') {
+          rb.applyImpulse(velocity);
+        }
+      } catch (e) { /* Ignore aliasing errors */ }
+
+      try {
+        if (angularVelocity && typeof rb.applyTorqueImpulse === 'function') {
+          rb.applyTorqueImpulse(angularVelocity);
+        } else if (typeof rb.applyTorqueImpulse === 'function') {
+          const randomSpin = {
+            x: (Math.random() - 0.5) * 0.02,
+            y: (Math.random() - 0.5) * 0.02,
+            z: (Math.random() - 0.5) * 0.02
+          };
+          rb.applyTorqueImpulse(randomSpin);
+        }
+      } catch (e) { /* Ignore aliasing errors */ }
     }
   }
   
