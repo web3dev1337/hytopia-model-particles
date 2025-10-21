@@ -19,6 +19,7 @@ export class Particle {
   private parkingPosition: Vector3Like = { x: 0, y: -50, z: 0 }; // Park underground but not too deep
   private rigidBody?: any; // Reference to entity's rigid body
   private _cachedPosition?: Vector3Like; // Cache position to avoid Rust aliasing
+  private physicsResetPending: boolean = false;
   
   // Debug tracking
   private static debugParticleId: number = 0;
@@ -165,43 +166,61 @@ export class Particle {
     // IMMEDIATELY disable physics to reduce overhead - no timeout!
     const rb = (this.entity as any).rawRigidBody;
     if (rb && typeof rb.setEnabled === 'function') {
-      // CRITICAL FIX: Clear velocities BEFORE disabling
-      if (typeof rb.setLinearVelocity === 'function') {
-        rb.setLinearVelocity({ x: 0, y: 0, z: 0 });
+      // CRITICAL: Consolidate all rigid body operations into ONE try-catch to prevent Rust aliasing
+      try {
+        // Clear velocities BEFORE disabling
+        const zeroLinear = { x: 0, y: 0, z: 0 };
+        const zeroAngular = { x: 0, y: 0, z: 0 };
+
+        if (typeof rb.setLinearVelocity === 'function') {
+          rb.setLinearVelocity(zeroLinear);
+        }
+        if (typeof rb.setAngularVelocity === 'function') {
+          rb.setAngularVelocity(zeroAngular);
+        }
+        if (typeof rb.setGravityScale === 'function') {
+          rb.setGravityScale(0); // No gravity when parked
+        }
+
+        rb.setEnabled(false); // Disable physics when parked
+
+        // Try to disable CCD if possible
+        if (typeof rb.setCcdEnabled === 'function') {
+          rb.setCcdEnabled(false);
+        }
+        if (typeof rb.enableCcd === 'function') {
+          rb.enableCcd(false);
+        }
+      } catch (e) {
+        // Ignore physics errors
       }
-      if (typeof rb.setAngularVelocity === 'function') {
-        rb.setAngularVelocity({ x: 0, y: 0, z: 0 });
-      }
-      if (typeof rb.setGravityScale === 'function') {
-        rb.setGravityScale(0); // No gravity when parked
-      }
-      
-      rb.setEnabled(false); // Disable physics when parked
+
       this.rigidBody = rb;
-      
-      // Try to disable CCD if possible
-      if (typeof rb.setCcdEnabled === 'function') {
-        rb.setCcdEnabled(false);
-      }
-      if (typeof rb.enableCcd === 'function') {
-        rb.enableCcd(false);
-      }
     } else {
       // If rigidBody not available immediately, try again shortly
       setTimeout(() => {
         const rb = (this.entity as any).rawRigidBody;
         if (rb && typeof rb.setEnabled === 'function') {
-          // Clear velocities before disabling
-          if (typeof rb.setLinearVelocity === 'function') {
-            rb.setLinearVelocity({ x: 0, y: 0, z: 0 });
+          // CRITICAL: Consolidate all rigid body operations to prevent Rust aliasing
+          try {
+            const zeroLinear = { x: 0, y: 0, z: 0 };
+            const zeroAngular = { x: 0, y: 0, z: 0 };
+
+            // Clear velocities before disabling
+            if (typeof rb.setLinearVelocity === 'function') {
+              rb.setLinearVelocity(zeroLinear);
+            }
+            if (typeof rb.setAngularVelocity === 'function') {
+              rb.setAngularVelocity(zeroAngular);
+            }
+            if (typeof rb.setGravityScale === 'function') {
+              rb.setGravityScale(0);
+            }
+            rb.setEnabled(false);
+          } catch (e) {
+            // Ignore physics errors
           }
-          if (typeof rb.setAngularVelocity === 'function') {
-            rb.setAngularVelocity({ x: 0, y: 0, z: 0 });
-          }
-          if (typeof rb.setGravityScale === 'function') {
-            rb.setGravityScale(0);
-          }
-          rb.setEnabled(false);
+
           this.rigidBody = rb;
         }
       }, 10);
@@ -271,102 +290,57 @@ export class Particle {
     this.spawnTime = Date.now();
     this.velocity = velocity;
     this.angularVelocity = angularVelocity;
-    
+
     // Debug log for first particle
     if (this.particleId === 0) {
       console.log(`🚀 P#0 DELAYED ACTIVATION at position:`, position, `with velocity:`, velocity);
     }
-    
-    // CRITICAL FIX: Ensure ALL velocities and forces are cleared BEFORE moving
-    // Wrap each rigid body call in try-catch to prevent Rust aliasing errors
+
+    // CRITICAL: Consolidate ALL rigid body operations into ONE try-catch to prevent Rust aliasing
     if (rb) {
-      // Clear any residual velocities from previous life
       try {
+        // Clear old velocities while physics is disabled
+        const zeroLinear = { x: 0, y: 0, z: 0 };
+        const zeroAngular = { x: 0, y: 0, z: 0 };
+
         if (typeof rb.setLinearVelocity === 'function') {
-          rb.setLinearVelocity({ x: 0, y: 0, z: 0 });
+          rb.setLinearVelocity(zeroLinear);
         }
-      } catch (e) { /* Ignore aliasing errors */ }
-
-      try {
         if (typeof rb.setAngularVelocity === 'function') {
-          rb.setAngularVelocity({ x: 0, y: 0, z: 0 });
+          rb.setAngularVelocity(zeroAngular);
         }
-      } catch (e) { /* Ignore aliasing errors */ }
 
-      try {
-        if (typeof rb.resetForces === 'function') {
-          rb.resetForces();
-        }
-      } catch (e) { /* Ignore aliasing errors */ }
-
-      try {
-        if (typeof rb.resetTorques === 'function') {
-          rb.resetTorques();
-        }
-      } catch (e) { /* Ignore aliasing errors */ }
-    }
-
-    // Move to position WITH PHYSICS DISABLED
-    try {
-      if (typeof (this.entity as any).setPosition === 'function') {
-        (this.entity as any).setPosition(position);
-      } else if (rb && typeof rb.setPosition === 'function') {
-        rb.setPosition(position);
-      }
-    } catch (e) { /* Ignore aliasing errors on setPosition */ }
-
-    // Make visible
-    try {
-      this.entity.setOpacity(this.currentOpacity);
-    } catch (e) { /* Ignore aliasing errors */ }
-
-    if (rb) {
-      // Reset ALL physics state to defaults
-      try {
-        if (typeof rb.setGravityScale === 'function') {
-          rb.setGravityScale(this.config.useGravity !== false ? 1.0 : 0.0);
-        }
-      } catch (e) { /* Ignore aliasing errors */ }
-
-      try {
-        if (typeof rb.setLinearDamping === 'function') {
-          rb.setLinearDamping(0.0); // Use default damping
-        }
-      } catch (e) { /* Ignore aliasing errors */ }
-
-      try {
-        if (typeof rb.setAngularDamping === 'function') {
-          rb.setAngularDamping(0.0); // Use default damping
-        }
-      } catch (e) { /* Ignore aliasing errors */ }
-
-      // Re-enable physics AFTER position is set and velocities cleared
-      try {
+        // Re-enable physics BEFORE applying velocity
         if (typeof rb.setEnabled === 'function') {
           rb.setEnabled(true);
         }
-      } catch (e) { /* Ignore aliasing errors */ }
+        if (typeof rb.setGravityScale === 'function') {
+          rb.setGravityScale(this.config.useGravity !== false ? 1.0 : 0.0);
+        }
 
-      // Apply initial velocities AFTER physics is enabled
-      try {
+        // Apply NEW velocity AFTER physics is enabled
         if (velocity && typeof rb.applyImpulse === 'function') {
           rb.applyImpulse(velocity);
         }
-      } catch (e) { /* Ignore aliasing errors */ }
-
-      try {
         if (angularVelocity && typeof rb.applyTorqueImpulse === 'function') {
           rb.applyTorqueImpulse(angularVelocity);
-        } else if (typeof rb.applyTorqueImpulse === 'function') {
-          const randomSpin = {
-            x: (Math.random() - 0.5) * 0.02,
-            y: (Math.random() - 0.5) * 0.02,
-            z: (Math.random() - 0.5) * 0.02
-          };
-          rb.applyTorqueImpulse(randomSpin);
         }
-      } catch (e) { /* Ignore aliasing errors */ }
+      } catch (e) {
+        // Ignore all physics errors
+      }
     }
+
+    // Move to position (separate try-catch for entity operations)
+    try {
+      if (typeof (this.entity as any).setPosition === 'function') {
+        (this.entity as any).setPosition(position);
+      }
+    } catch (e) { /* Ignore */ }
+
+    // Make visible (separate try-catch)
+    try {
+      this.entity.setOpacity(this.currentOpacity);
+    } catch (e) { /* Ignore */ }
   }
   
   /**
@@ -379,10 +353,11 @@ export class Particle {
 
   update(): boolean {
     if (!this.isActive) return false;
-    
-    // Update cached position first to avoid Rust aliasing
-    this.updateCachedPosition();
-    
+
+    // CRITICAL FIX: Skip position updates entirely - they cause Rust aliasing errors
+    // Position caching is not essential for particle functionality
+    // this.updateCachedPosition();
+
     const elapsed = Date.now() - this.spawnTime;
     if (elapsed >= this.lifetime) {
       // Log when particles expire
@@ -392,20 +367,20 @@ export class Particle {
       this.despawn();
       return false;
     }
-    
+
     // Calculate lifetime progress (0 to 1)
     const progress = elapsed / this.lifetime;
-    
+
     // Apply animations
     if (this.animations || this.isColorGradient) {
       this.applyAnimations(progress, elapsed);
     }
-    
+
     // Apply rotation
     if (this.rotationVelocity !== 0 || (this.animations?.rotationOverTime)) {
       this.applyRotation(elapsed);
     }
-    
+
     return true;
   }
 
@@ -468,7 +443,8 @@ export class Particle {
   }
 
   /**
-   * Park the particle (true pooling) - disables physics and hides
+   * Park the particle (true pooling) - disable physics and hide
+   * Disabling physics prevents unwanted movement while parked
    */
   park(): void {
     if (!this.isActive) return;
@@ -482,77 +458,66 @@ export class Particle {
 
     if (this.entity.isSpawned) {
       const rb = this.rigidBody || (this.entity as any).rawRigidBody;
-      if (rb) {
-        // Wrap all rigid body calls in try-catch to handle Rust aliasing errors gracefully
-        // Each method call can fail independently without breaking the entire parking sequence
-        try {
-          // CRITICAL FIX: Clear ALL velocities and forces BEFORE disabling physics
-          // This prevents velocity from accumulating while physics is disabled
-          if (typeof rb.setLinearVelocity === 'function') {
-            rb.setLinearVelocity({ x: 0, y: 0, z: 0 });
-          }
-        } catch (e) { /* Ignore aliasing errors */ }
+      const parkingPosition = { ...this.parkingPosition };
 
-        try {
-          if (typeof rb.setAngularVelocity === 'function') {
-            rb.setAngularVelocity({ x: 0, y: 0, z: 0 });
-          }
-        } catch (e) { /* Ignore aliasing errors */ }
-
-        try {
-          // Reset forces BEFORE disabling
-          if (typeof rb.resetForces === 'function') {
-            rb.resetForces();
-          }
-        } catch (e) { /* Ignore aliasing errors */ }
-
-        try {
-          if (typeof rb.resetTorques === 'function') {
-            rb.resetTorques();
-          }
-        } catch (e) { /* Ignore aliasing errors */ }
-
-        try {
-          // Reset acceleration if it exists
-          if (typeof rb.setLinearAcceleration === 'function') {
-            rb.setLinearAcceleration({ x: 0, y: 0, z: 0 });
-          }
-        } catch (e) { /* Ignore aliasing errors */ }
-
-        try {
-          if (typeof rb.setAngularAcceleration === 'function') {
-            rb.setAngularAcceleration({ x: 0, y: 0, z: 0 });
-          }
-        } catch (e) { /* Ignore aliasing errors */ }
-
-        try {
-          // Set gravity scale to 0 to prevent further falling
-          if (typeof rb.setGravityScale === 'function') {
-            rb.setGravityScale(0);
-          }
-        } catch (e) { /* Ignore aliasing errors */ }
-
-        try {
-          // NOW disable physics after clearing everything
-          if (typeof rb.setEnabled === 'function') {
-            rb.setEnabled(false);
-          }
-        } catch (e) { /* Ignore aliasing errors */ }
-      }
-
+      // Hide immediately so the particle disappears even if physics reset is deferred
       try {
-        // Move to parking position AFTER physics is disabled
-        if (typeof (this.entity as any).setPosition === 'function') {
-          (this.entity as any).setPosition(this.parkingPosition);
-        } else if (rb && typeof rb.setPosition === 'function') {
-          rb.setPosition(this.parkingPosition);
-        }
-      } catch (e) { /* Ignore aliasing errors */ }
-
-      try {
-        // Hide
         this.entity.setOpacity(0.0);
-      } catch (e) { /* Ignore aliasing errors */ }
+      } catch (e) { /* Ignore */ }
+
+      this.physicsResetPending = true;
+
+      this.deferPhysicsWork(() => {
+        try {
+          if (rb) {
+            // CRITICAL: Consolidate all velocity operations into ONE try-catch to minimize Rust aliasing
+            try {
+              // Clear linear velocity
+              if (typeof rb.resetLinearVelocity === 'function') {
+                rb.resetLinearVelocity();
+              } else if (typeof rb.setLinearVelocity === 'function') {
+                const zeroLinear = { x: 0, y: 0, z: 0 };
+                rb.setLinearVelocity(zeroLinear);
+              }
+
+              // Clear angular velocity (same try-catch to avoid aliasing)
+              if (typeof rb.resetAngularVelocity === 'function') {
+                rb.resetAngularVelocity();
+              } else if (typeof rb.setAngularVelocity === 'function') {
+                const zeroAngular = { x: 0, y: 0, z: 0 };
+                rb.setAngularVelocity(zeroAngular);
+              }
+
+              // Set gravity scale (same try-catch)
+              if (typeof rb.setGravityScale === 'function') {
+                rb.setGravityScale(0);
+              }
+
+              // Disable physics last (same try-catch)
+              if (typeof rb.setEnabled === 'function') {
+                rb.setEnabled(false);
+              }
+            } catch (e) {
+              // Ignore all physics errors - particle will still be hidden and parked
+            }
+          }
+
+          // Move to parking position (far underground) after physics settles
+          // Separate try-catch for position to avoid aliasing with rb operations
+          try {
+            if (typeof (this.entity as any).setPosition === 'function') {
+              (this.entity as any).setPosition(parkingPosition);
+            }
+          } catch (e) { /* Ignore */ }
+        } finally {
+          this.physicsResetPending = false;
+        }
+      });
+    } else {
+      // Even if entity isn't spawned, ensure opacity reset doesn't throw
+      try {
+        this.entity.setOpacity(0.0);
+      } catch (e) { /* Ignore */ }
     }
 
     // Clear internal velocity tracking
@@ -602,34 +567,37 @@ export class Particle {
    * Update cached position - call this once per frame
    */
   updateCachedPosition(): void {
-    // Extract each coordinate separately to avoid Rust aliasing from multiple property accesses
+    // CRITICAL FIX: Extract each coordinate in separate try-catch to handle Rust borrow checker
+    // Even storing position once can fail if Rust has it borrowed during ANY coordinate access
     let x: number | undefined;
     let y: number | undefined;
     let z: number | undefined;
 
+    // Store position reference ONCE
+    let pos: any;
     try {
-      x = this.entity.position.x;
+      pos = this.entity.position;
     } catch (e) {
-      // Silently fail - keep previous cached value
+      return; // Can't access position at all, keep previous cache
     }
 
+    // Now extract coordinates with individual try-catch for each
     try {
-      y = this.entity.position.y;
-    } catch (e) {
-      // Silently fail - keep previous cached value
-    }
+      x = pos.x;
+    } catch (e) { }
 
     try {
-      z = this.entity.position.z;
-    } catch (e) {
-      // Silently fail - keep previous cached value
-    }
+      y = pos.y;
+    } catch (e) { }
 
-    // Only update cache if we successfully got all three coordinates
+    try {
+      z = pos.z;
+    } catch (e) { }
+
+    // Only update cache if we got all three coordinates
     if (x !== undefined && y !== undefined && z !== undefined) {
       this._cachedPosition = { x, y, z };
     }
-    // If any coordinate failed due to physics borrowing, keep previous cache untouched
   }
   
   getLifetimeProgress(): number {
@@ -645,21 +613,33 @@ export class Particle {
   
   private startDebugTracking(): void {
     console.log('🔍 Starting debug tracking for Particle #0');
-    
+
     // Track every 300ms
     this.debugTrackingInterval = setInterval(() => {
       if (!this.entity || !this.entity.isSpawned) return;
-      
+
       const rb = this.rigidBody || (this.entity as any).rawRigidBody;
       if (!rb) return;
-      
-      // Get ALL properties we can (store position once to avoid Rust aliasing)
-      const entityPos = this.entity.position;
-      const pos = entityPos ? { x: entityPos.x, y: entityPos.y, z: entityPos.z } : { x: 0, y: 0, z: 0 };
-      const rbLinearVel = rb.linearVelocity;
-      const linearVel = rbLinearVel ? { x: rbLinearVel.x, y: rbLinearVel.y, z: rbLinearVel.z } : { x: 0, y: 0, z: 0 };
-      const rbAngularVel = rb.angularVelocity;
-      const angularVel = rbAngularVel ? { x: rbAngularVel.x, y: rbAngularVel.y, z: rbAngularVel.z } : { x: 0, y: 0, z: 0 };
+
+      // FIX: Wrap each property access in try-catch and store ONCE to avoid Rust aliasing
+      let pos = { x: 0, y: 0, z: 0 };
+      let linearVel = { x: 0, y: 0, z: 0 };
+      let angularVel = { x: 0, y: 0, z: 0 };
+
+      try {
+        const entityPos = this.entity.position;
+        pos = { x: entityPos.x, y: entityPos.y, z: entityPos.z };
+      } catch (e) { /* Ignore aliasing errors */ }
+
+      try {
+        const rbLinearVel = rb.linearVelocity;
+        linearVel = { x: rbLinearVel.x, y: rbLinearVel.y, z: rbLinearVel.z };
+      } catch (e) { /* Ignore aliasing errors */ }
+
+      try {
+        const rbAngularVel = rb.angularVelocity;
+        angularVel = { x: rbAngularVel.x, y: rbAngularVel.y, z: rbAngularVel.z };
+      } catch (e) { /* Ignore aliasing errors */ }
       const isEnabled = rb.isEnabled ? rb.isEnabled() : false;
       const isCcd = rb.isCcdEnabled ? rb.isCcdEnabled() : false;
       const mass = typeof rb.mass === 'number' ? rb.mass : 'N/A';
@@ -694,4 +674,22 @@ export class Particle {
       this.debugTrackingInterval = undefined;
     }
   }
+
+  private deferPhysicsWork(work: () => void): void {
+    try {
+      if (typeof queueMicrotask === 'function') {
+        queueMicrotask(work);
+        return;
+      }
+    } catch (e) {
+      // Ignore, we'll fall back to setTimeout
+    }
+
+    setTimeout(work, 0);
+  }
+
+  public isPhysicsResetPending(): boolean {
+    return this.physicsResetPending;
+  }
+
 }

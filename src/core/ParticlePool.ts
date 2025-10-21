@@ -81,8 +81,33 @@ export class ParticlePool {
   
   acquire(config?: Partial<ParticleConfig>, position?: any, velocity?: any, angularVelocity?: any): Particle | null {
     // Get from pool or create new if pool is empty
-    let particle = this.availableParticles.pop();
-    let fromPool = !!particle;
+    let particle: Particle | undefined;
+    let fromPool = false;
+
+    if (this.availableParticles.length > 0) {
+      const recycled: Particle[] = [];
+
+      while (this.availableParticles.length > 0) {
+        const candidate = this.availableParticles.pop() as Particle;
+        const isResetPending = typeof (candidate as any).isPhysicsResetPending === 'function'
+          ? (candidate as any).isPhysicsResetPending()
+          : false;
+
+        if (isResetPending) {
+          recycled.push(candidate);
+          continue;
+        }
+
+        particle = candidate;
+        fromPool = true;
+        break;
+      }
+
+      // Restore any skipped particles (maintain original order)
+      while (recycled.length > 0) {
+        this.availableParticles.push(recycled.pop() as Particle);
+      }
+    }
     
     if (!particle && this.activeParticles.size < this.poolSize * 2) {
       // Grow pool if needed
@@ -152,11 +177,16 @@ export class ParticlePool {
       
       // Return to pool if not over capacity
       if (this.availableParticles.length < this.poolSize * this.growthFactor) {
-        this.availableParticles.push(particle);
-        // Log every 10th release
-        if (this.availableParticles.length % 10 === 0) {
-          console.log(`♾️ RELEASED particle back to pool. Now available: ${this.availableParticles.length}, Active: ${this.activeParticles.size}`);
-        }
+        setTimeout(() => {
+          if (this.availableParticles.length >= this.poolSize * this.growthFactor) {
+            return;
+          }
+          this.availableParticles.push(particle);
+          // Log every 10th release
+          if (this.availableParticles.length % 10 === 0) {
+            console.log(`♾️ RELEASED particle back to pool. Now available: ${this.availableParticles.length}, Active: ${this.activeParticles.size}`);
+          }
+        }, 5);
       } else {
         console.warn(`⚠️ Pool over capacity! Not returning particle. Available: ${this.availableParticles.length}, Max: ${this.poolSize * this.growthFactor}`);
       }
