@@ -572,17 +572,34 @@ export class Particle {
    * Update cached position - call this once per frame
    */
   updateCachedPosition(): void {
+    // Extract each coordinate separately to avoid Rust aliasing from multiple property accesses
+    let x: number | undefined;
+    let y: number | undefined;
+    let z: number | undefined;
+
     try {
-      const pos = this.entity.position;
-      if (pos) {
-        this._cachedPosition = { x: pos.x, y: pos.y, z: pos.z };
-        return;
-      }
-    } catch (error) {
-      // Leave cached value untouched if physics refuses the borrow
-      console.warn('model_particles.position_cache.failed', error instanceof Error ? error.message : String(error));
+      x = this.entity.position.x;
+    } catch (e) {
+      // Silently fail - keep previous cached value
     }
-    // If retrieving the position fails (due to physics borrowing), keep previous cache
+
+    try {
+      y = this.entity.position.y;
+    } catch (e) {
+      // Silently fail - keep previous cached value
+    }
+
+    try {
+      z = this.entity.position.z;
+    } catch (e) {
+      // Silently fail - keep previous cached value
+    }
+
+    // Only update cache if we successfully got all three coordinates
+    if (x !== undefined && y !== undefined && z !== undefined) {
+      this._cachedPosition = { x, y, z };
+    }
+    // If any coordinate failed due to physics borrowing, keep previous cache untouched
   }
   
   getLifetimeProgress(): number {
