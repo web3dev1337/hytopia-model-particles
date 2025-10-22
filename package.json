@@ -23,10 +23,13 @@
   "author": "NeuralPixelGames",
   "license": "MIT",
   "dependencies": {
-    "hytopia": "0.10.21",
     "js-yaml": "^4.1.0"
   },
+  "peerDependencies": {
+    "hytopia": ">=0.10.0"
+  },
   "devDependencies": {
+    "hytopia": "0.10.21",
     "@types/jest": "^29.5.0",
     "@types/js-yaml": "^4.0.5",
     "@types/node": "^20.11.24",
