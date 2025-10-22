@@ -676,16 +676,26 @@ export class Particle {
   }
 
   private deferPhysicsWork(work: () => void): void {
+    // CRITICAL: Wrap work in try-catch to prevent Rust panics from becoming uncaught exceptions
+    const safeWork = () => {
+      try {
+        work();
+      } catch (e) {
+        // Silently catch ALL errors including Rust aliasing panics
+        // Particle will still be parked (hidden + position set) even if physics reset fails
+      }
+    };
+
     try {
       if (typeof queueMicrotask === 'function') {
-        queueMicrotask(work);
+        queueMicrotask(safeWork);
         return;
       }
     } catch (e) {
       // Ignore, we'll fall back to setTimeout
     }
 
-    setTimeout(work, 0);
+    setTimeout(safeWork, 0);
   }
 
   public isPhysicsResetPending(): boolean {
