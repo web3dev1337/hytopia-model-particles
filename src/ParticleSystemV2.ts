@@ -91,7 +91,7 @@ export class ParticleSystemV2 {
     // Initialize v2.2 systems based on options
     if (options.poolSize || options.performance?.enablePooling !== false) {
       const defaultConfig: ParticleConfig = {
-        modelUri: 'models/items/gold-nugget.gltf',
+        modelUri: options.poolDefaultModel || 'models/items/gold-nugget.gltf',
         modelScale: 0.3,
         lifetime: 2000
       };
@@ -99,9 +99,10 @@ export class ParticleSystemV2 {
         options.poolSize || Math.min(100, this.maxParticles),
         defaultConfig,
         this.entityFactory,
-        world // Pass world for true entity pooling
+        world, // Pass world for true entity pooling
+        options.poolPreBuildSize // Pre-build size (0 = no pre-building)
       );
-      console.log('🚀 ParticleSystem v2.3: True entity pooling enabled');
+      console.log(`🚀 ParticleSystem v2.3: True entity pooling enabled with model: ${defaultConfig.modelUri} (pre-build: ${options.poolPreBuildSize || 0})`);
     }
     
     if (options.performance?.enableSpatialOptimization) {

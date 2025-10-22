@@ -21,12 +21,14 @@ export class ParticlePool {
     poolSize: number = 100,
     private defaultConfig: ParticleConfig,
     private entityFactory?: (config: any) => any,
-    world?: World
+    world?: World,
+    preBuildSize?: number
   ) {
     this.poolSize = poolSize;
     this.world = world;
-    // Start with empty pool - will build gradually
-    if (world) {
+    this.targetPoolSize = preBuildSize !== undefined ? preBuildSize : 50;
+    // Start with empty pool - will build gradually only if preBuildSize > 0
+    if (world && this.targetPoolSize > 0) {
       this.startGradualPoolBuilding();
     }
   }

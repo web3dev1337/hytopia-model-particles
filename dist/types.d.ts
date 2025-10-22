@@ -137,6 +137,8 @@ export interface ParticleSystemOptions {
     performance?: PerformanceOptions;
     physics?: PhysicsOptions;
     poolSize?: number;
+    poolDefaultModel?: string;
+    poolPreBuildSize?: number;
     configPath?: string;
     enableHotReload?: boolean;
     debug?: boolean;

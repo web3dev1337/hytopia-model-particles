@@ -123,6 +123,8 @@ export interface ParticleSystemOptions {
   performance?: PerformanceOptions;
   physics?: PhysicsOptions;
   poolSize?: number;
+  poolDefaultModel?: string; // Custom model URI for pool entities (default: gold-nugget.gltf)
+  poolPreBuildSize?: number; // How many entities to pre-build (0 = no pre-building, grows on-demand)
   configPath?: string;
   enableHotReload?: boolean;
   debug?: boolean;
